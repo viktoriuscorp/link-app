@@ -1,17 +1,14 @@
 "use client";
 
 import { ArrowRight, Link2, Loader2 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
-export function AuthForm({ mode }: { mode: "login" | "register" }) {
+export function AuthForm() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
-    name: "",
-    workspaceName: "My Workspace",
     email: "",
     password: ""
   });
@@ -22,7 +19,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     setError("");
 
     try {
-      const response = await fetch(`/api/auth/${mode}`, {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form)
@@ -51,32 +48,10 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           </span>
           <div>
             <h1>Link App</h1>
-            <p>{mode === "login" ? "Accede a tu workspace" : "Crea tu workspace"}</p>
+            <p>Accede a tu workspace</p>
           </div>
         </div>
         <form className="auth-form" onSubmit={submit}>
-          {mode === "register" ? (
-            <>
-              <label>
-                Nombre
-                <input
-                  required
-                  value={form.name}
-                  onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-                />
-              </label>
-              <label>
-                Workspace
-                <input
-                  required
-                  value={form.workspaceName}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, workspaceName: event.target.value }))
-                  }
-                />
-              </label>
-            </>
-          ) : null}
           <label>
             Email
             <input
@@ -99,15 +74,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           {error ? <p className="form-error">{error}</p> : null}
           <button className="primary-button" disabled={busy}>
             {busy ? <Loader2 className="spin" size={18} /> : <ArrowRight size={18} />}
-            {mode === "login" ? "Entrar" : "Crear cuenta"}
+            Entrar
           </button>
         </form>
-        <p className="auth-switch">
-          {mode === "login" ? "No tienes cuenta?" : "Ya tienes cuenta?"}{" "}
-          <Link href={mode === "login" ? "/register" : "/login"}>
-            {mode === "login" ? "Registrate" : "Inicia sesion"}
-          </Link>
-        </p>
       </section>
     </main>
   );

@@ -9,5 +9,5 @@ export default async function LoginPage() {
     redirect("/");
   }
 
-  return <AuthForm mode="login" />;
+  return <AuthForm />;
 }

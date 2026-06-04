@@ -4,7 +4,7 @@ Este documento es la memoria operativa de Link App. Debe actualizarse cada vez q
 
 ## Producto
 
-Link App es una aplicacion tipo Bitly para crear enlaces cortos, redirigirlos a URLs externas, contar clics y preparar el uso de dominios personalizados.
+Link App es una aplicacion privada tipo Bitly para crear enlaces cortos, redirigirlos a URLs externas, contar clics y preparar el uso de dominios personalizados.
 
 Objetivo del MVP:
 
@@ -33,7 +33,7 @@ Objetivo del MVP:
 - HTTPS: activo y verificado en `dayibiza.link`, `www.dayibiza.link` y `link-app.comunikoo.workers.dev`.
 - Seguridad HTTPS: `http://dayibiza.link/*` redirige a `https://dayibiza.link/*` con `308`; las respuestas HTTPS incluyen `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`.
 - Certificado verificado el 2026-06-04: `dayibiza.link`, TLSv1.3, issuer `Google Trust Services`, HTTP/2.
-- Version Cloudflare actual: `e8beec11-d420-424b-a2bd-394d2e955348`
+- Version Cloudflare actual: `b3309849-bc54-49b8-bd78-2fe20c851b23`
 - Plataforma: Cloudflare Workers con OpenNext.
 - Motivo: la app usa Next.js full-stack con route handlers, redirecciones dinamicas y persistencia. Cloudflare Pages queda mejor para sitios estaticos; para esta app se usa Workers/OpenNext.
 - KV namespace: `LINK_APP_STORE`
@@ -102,13 +102,13 @@ git push origin v1-link-up
 
 - `src/app/page.tsx`: entrada del panel web. Forzada como dinamica con `dynamic = "force-dynamic"` para leer datos actuales.
 - `src/app/login/page.tsx`: pantalla de acceso.
-- `src/app/register/page.tsx`: pantalla de registro.
+- `src/app/register/page.tsx`: redirige a `/login`; el registro publico esta desactivado.
 - `src/components/auth-form.tsx`: formulario compartido de login/registro.
 - `src/components/dashboard.tsx`: interfaz principal de links, dominios, copiado y acciones.
 - `src/app/[slug]/route.ts`: redireccion dinamica de enlaces cortos.
 - `src/app/api/auth/login/route.ts`: crea sesion de usuario.
 - `src/app/api/auth/logout/route.ts`: cierra sesion actual.
-- `src/app/api/auth/register/route.ts`: registra usuario y crea sesion.
+- `src/app/api/auth/register/route.ts`: devuelve `403`; el registro publico esta desactivado.
 - `src/app/api/api-keys/route.ts`: lista y crea API Keys desde el panel.
 - `src/app/api/api-keys/[id]/route.ts`: revoca API Keys.
 - `src/app/api/v1/links/route.ts`: API publica para crear enlaces con `Authorization: Bearer <API_KEY>`.
@@ -141,7 +141,7 @@ Modelo:
 - `domains`: dominios personalizados.
 - `links`: enlaces cortos.
 - `clickEvents`: eventos de clic para analitica.
-- `users`: usuarios registrados.
+- `users`: usuarios registrados de forma privada.
 - `sessions`: sesiones activas con expiracion.
 - `apiKeys`: claves API hasheadas, con prefijo visible, scopes, ultimo uso y revocacion.
 
@@ -273,7 +273,7 @@ Validacion:
 
 Estado: desplegada en Cloudflare el 2026-06-04.
 
-Cloudflare version id: `e8beec11-d420-424b-a2bd-394d2e955348`
+Cloudflare version id: `b3309849-bc54-49b8-bd78-2fe20c851b23`
 
 Contenido:
 
@@ -292,8 +292,8 @@ Contenido:
 - Cada API Key tiene scope `links:create`, prefijo visible y `lastUsedAt`.
 - Vista de usuarios con listado del workspace.
 - Vista de dominios inspirada en el flujo de conectar dominio propio.
-- Registro y login con cookie HTTP-only `link_app_session`.
-- Primer usuario registrado queda como `owner`; los siguientes quedan como `member`.
+- Login con cookie HTTP-only `link_app_session`.
+- Registro publico desactivado: `/register` redirige a `/login` y `/api/auth/register` devuelve `403`.
 - APIs del dashboard protegidas por sesion.
 - Los slugs publicos siguen funcionando sin login.
 - HTTP forzado a HTTPS en produccion.
@@ -323,10 +323,10 @@ Validacion produccion:
 - Bundle de produccion verificado con navegacion `Analytics` y textos de modulos desplegados.
 - API Keys validado en local: crear key, crear link remoto con `Bearer`, recibir `shortUrl`, redireccion publica `307`, `401` sin key y `401` tras revocar.
 - API Keys desplegado en Cloudflare: `POST https://dayibiza.link/api/v1/links` devuelve `401` sin Bearer, HTTP redirige a HTTPS con `308`, HTTPS conserva HSTS.
+- App privada: login sin enlace de registro, `/register` redirige a `/login`, `/api/auth/register` devuelve `403`.
 
 Pendiente despues de desplegar V3:
 
-- Decidir si el primer registro en produccion queda abierto o si se bloquea tras crear el owner.
 - Separar datos por usuario/workspace antes de multiusuario real.
 - Implementar invitaciones reales desde la vista de usuarios.
 - Revisar UX responsive en navegador con captura estable.
