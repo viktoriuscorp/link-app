@@ -33,7 +33,7 @@ Objetivo del MVP:
 - HTTPS: activo y verificado en `dayibiza.link`, `www.dayibiza.link` y `link-app.comunikoo.workers.dev`.
 - Seguridad HTTPS: `http://dayibiza.link/*` redirige a `https://dayibiza.link/*` con `308`; las respuestas HTTPS incluyen `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`.
 - Certificado verificado el 2026-06-04: `dayibiza.link`, TLSv1.3, issuer `Google Trust Services`, HTTP/2.
-- Version Cloudflare actual: `2caa2c26-43f9-4f4b-9ef9-745e48821086`
+- Version Cloudflare actual: `a4b4fe42-317a-4013-b7cb-6eb19ad7b3a4`
 - Plataforma: Cloudflare Workers con OpenNext.
 - Motivo: la app usa Next.js full-stack con route handlers, redirecciones dinamicas y persistencia. Cloudflare Pages queda mejor para sitios estaticos; para esta app se usa Workers/OpenNext.
 - KV namespace: `LINK_APP_STORE`
@@ -260,16 +260,19 @@ Validacion:
 
 Estado: desplegada en Cloudflare el 2026-06-04.
 
-Cloudflare version id: `2caa2c26-43f9-4f4b-9ef9-745e48821086`
+Cloudflare version id: `a4b4fe42-317a-4013-b7cb-6eb19ad7b3a4`
 
 Contenido:
 
 - Redisenio del panel hacia un dashboard tipo Linkly/Bitly.
 - Sidebar fija con workspace, navegacion principal, uso de links ilimitados y logout.
-- Vistas separadas: crear enlace, enlaces, trafico, usuarios, dominios, importacion masiva y configuracion.
+- Vistas separadas: crear enlace, enlaces, Analytics, usuarios, dominios, importacion masiva y configuracion.
 - Vista de crear enlace con panel de destino, slug/dominio, nombre interno, UTMs, campana, tags, expiracion, limite de clics, fallback y previsualizacion lateral.
 - Vista de enlaces con tabla densa, buscador, exportacion visual y acciones existentes al expandir cada fila.
-- Vista de trafico con resumen de clics, clics unicos, grafico simple por dias y tabla de destinos.
+- La antigua vista de trafico queda sustituida por Analytics.
+- Vista Analytics tipo Bitly con filtros por periodo y link.
+- Modulos Analytics: KPIs, interacciones en el tiempo, links top, referentes, ubicacion, dispositivos, navegadores y campanas.
+- Exportacion CSV de eventos filtrados desde Analytics.
 - Vista de usuarios con listado del workspace.
 - Vista de dominios inspirada en el flujo de conectar dominio propio.
 - Registro y login con cookie HTTP-only `link_app_session`.
@@ -300,6 +303,7 @@ Validacion produccion:
 - `https://dayibiza.link/` redirige a `/login` con `307` si no hay sesion.
 - `https://dayibiza.link/api/snapshot` devuelve `401` sin sesion.
 - TLS verificado con `curl -vI`: TLSv1.3, certificado para `dayibiza.link`, issuer `Google Trust Services`.
+- Bundle de produccion verificado con navegacion `Analytics` y textos de modulos desplegados.
 
 Pendiente despues de desplegar V3:
 

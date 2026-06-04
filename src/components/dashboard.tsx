@@ -11,11 +11,13 @@ import {
   Edit3,
   ExternalLink,
   FileUp,
+  Filter,
   Globe2,
   LayoutDashboard,
   Link2,
   Loader2,
   LogOut,
+  MoreHorizontal,
   MousePointerClick,
   Plus,
   Power,
@@ -32,7 +34,7 @@ import {
   Zap
 } from "lucide-react";
 import QRCode from "qrcode";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PublicUser } from "@/lib/auth";
 import type { ClickEvent, Domain, ShortLink, Store } from "@/lib/types";
@@ -40,8 +42,11 @@ import { DEFAULT_BASE_URL } from "@/lib/config";
 
 type Snapshot = Pick<Store, "domains" | "links" | "clickEvents">;
 type Toast = { tone: "success" | "error"; text: string } | null;
-type View = "create" | "links" | "traffic" | "users" | "domains" | "imports" | "settings";
+type View = "create" | "links" | "analytics" | "users" | "domains" | "imports" | "settings";
 type LinkUpdateInput = Partial<Omit<ShortLink, "tags">> & { tags?: string };
+type AnalyticsRow = { count: number; label: string; percent: number };
+
+const ANALYTICS_COLORS = ["#4faeba", "#b8f0f5", "#3151c9", "#b8c8ff", "#f08b27", "#87d4c9"];
 
 const emptyLinkForm = {
   title: "",
@@ -315,8 +320,12 @@ export function Dashboard({
           <NavButton icon={<Link2 size={18} />} active={activeView === "links"} onClick={() => setActiveView("links")}>
             Enlaces
           </NavButton>
-          <NavButton icon={<BarChart3 size={18} />} active={activeView === "traffic"} onClick={() => setActiveView("traffic")}>
-            Trafico
+          <NavButton
+            icon={<BarChart3 size={18} />}
+            active={activeView === "analytics"}
+            onClick={() => setActiveView("analytics")}
+          >
+            Analytics
           </NavButton>
           <NavButton icon={<Users size={18} />} active={activeView === "users"} onClick={() => setActiveView("users")}>
             Usuarios
@@ -384,7 +393,9 @@ export function Dashboard({
           />
         ) : null}
 
-        {activeView === "traffic" ? <TrafficView clickEvents={clickEvents} links={links} stats={stats} /> : null}
+        {activeView === "analytics" ? (
+          <AnalyticsView clickEvents={clickEvents} links={links} stats={stats} />
+        ) : null}
 
         {activeView === "users" ? <UsersView currentUser={currentUser} users={users} /> : null}
 
@@ -415,8 +426,8 @@ function NavButton({
   onClick
 }: {
   active: boolean;
-  children: React.ReactNode;
-  icon: React.ReactNode;
+  children: ReactNode;
+  icon: ReactNode;
   onClick: () => void;
 }) {
   return (
@@ -655,7 +666,7 @@ function LinksView({
   );
 }
 
-function TrafficView({
+function AnalyticsView({
   clickEvents,
   links,
   stats
@@ -664,41 +675,306 @@ function TrafficView({
   links: ShortLink[];
   stats: { clicks: number; uniqueClicks: number };
 }) {
-  const bars = lastNDays(clickEvents, 14);
-  const max = Math.max(1, ...bars.map((bar) => bar.count));
-  const topLinks = links.toSorted((a, b) => b.clicks - a.clicks).slice(0, 6);
+  const [range, setRange] = useState("30");
+  const [selectedLinkId, setSelectedLinkId] = useState("all");
+  const filteredEvents = useMemo(
+    () => filterAnalyticsEvents(clickEvents, range, selectedLinkId),
+    [clickEvents, range, selectedLinkId]
+  );
+  const rangeDays = range === "all" ? 30 : Number(range);
+  const timeline = lastNDays(filteredEvents, Math.min(30, rangeDays));
+  const total = filteredEvents.length;
+  const unique = new Set(filteredEvents.map((event) => event.ipHash)).size;
+  const topReferrers = groupAnalytics(filteredEvents, (event) => readableReferrer(event.referrer)).slice(0, 7);
+  const topCountries = groupAnalytics(filteredEvents, (event) => countryName(event.country)).slice(0, 10);
+  const topDevices = groupAnalytics(filteredEvents, (event) => deviceName(event.device)).slice(0, 5);
+  const topBrowsers = groupAnalytics(filteredEvents, (event) => event.browser || "Other").slice(0, 5);
+  const topCampaigns = groupAnalytics(filteredEvents, (event) => {
+    const link = links.find((item) => item.id === event.linkId);
+    return link?.campaign || "Sin campana";
+  }).slice(0, 5);
+  const topLinks = links
+    .map((link) => ({
+      link,
+      count: filteredEvents.filter((event) => event.linkId === link.id).length
+    }))
+    .filter((item) => item.count > 0)
+    .toSorted((a, b) => b.count - a.count)
+    .slice(0, 6);
+  const bestDay = timeline.toSorted((a, b) => b.count - a.count)[0];
+  const directCount = topReferrers.find((item) => item.label === "Directo")?.count ?? 0;
 
   return (
-    <section className="traffic-view">
-      <div className="traffic-hero">
-        <div>
-          <strong>{stats.clicks}</strong>
-          <h2>Total de clics</h2>
-          <p>{stats.uniqueClicks} clics unicos registrados</p>
+    <section className="analytics-view">
+      <div className="analytics-toolbar">
+        <div className="button-row">
+          <label className="select-control">
+            <CalendarClock size={17} />
+            <select value={range} onChange={(event) => setRange(event.target.value)}>
+              <option value="7">Ultimos 7 dias</option>
+              <option value="30">Ultimos 30 dias</option>
+              <option value="90">Ultimos 90 dias</option>
+              <option value="all">Todo el historico</option>
+            </select>
+          </label>
+          <label className="select-control">
+            <Filter size={17} />
+            <select value={selectedLinkId} onChange={(event) => setSelectedLinkId(event.target.value)}>
+              <option value="all">Todos los links</option>
+              {links.map((link) => (
+                <option key={link.id} value={link.id}>
+                  {link.title || link.slug}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
-        <div className="chart-bars">
-          {bars.map((bar) => (
-            <span key={bar.label} title={`${bar.label}: ${bar.count}`}>
-              <i style={{ height: `${Math.max(8, (bar.count / max) * 100)}%` }} />
-            </span>
-          ))}
+        <button className="ghost-action" type="button" onClick={() => downloadAnalyticsCsv(filteredEvents, links)}>
+          <Download size={17} />
+          Exportar CSV
+        </button>
+      </div>
+
+      <div className="analytics-kpis">
+        <KpiCard label="Interacciones filtradas" value={total} detail={`${stats.clicks} clics historicos`} />
+        <KpiCard label="Visitantes unicos" value={unique} detail={`${stats.uniqueClicks} unicos historicos`} />
+        <KpiCard label="Mejor dia" value={bestDay?.count ?? 0} detail={bestDay ? bestDay.label : "Sin datos"} />
+        <KpiCard
+          label="Trafico directo"
+          value={`${total ? Math.round((directCount / total) * 100) : 0}%`}
+          detail={`${directCount} interacciones`}
+        />
+      </div>
+
+      <div className="analytics-grid">
+        <AnalyticsCard className="analytics-card-wide" title="Total de interacciones a lo largo del tiempo">
+          <TimelineChart data={timeline} />
+        </AnalyticsCard>
+
+        <AnalyticsCard title="Links con mas interacciones">
+          <TopLinksPanel items={topLinks} total={total} />
+        </AnalyticsCard>
+
+        <AnalyticsCard title="Total de interacciones por referente">
+          <BarRanking rows={topReferrers} emptyText="Aun no hay referentes." />
+        </AnalyticsCard>
+
+        <AnalyticsCard title="Total de interacciones por dispositivo">
+          <DonutBreakdown rows={topDevices} total={total} centerLabel={String(total)} />
+        </AnalyticsCard>
+
+        <AnalyticsCard className="analytics-card-wide" title="Total de interacciones por ubicacion">
+          <LocationPanel rows={topCountries} total={total} />
+        </AnalyticsCard>
+
+        <AnalyticsCard title="Navegadores">
+          <BarRanking rows={topBrowsers} emptyText="Aun no hay navegadores." />
+        </AnalyticsCard>
+
+        <AnalyticsCard title="Campanas">
+          <BarRanking rows={topCampaigns} emptyText="Aun no hay campanas." />
+        </AnalyticsCard>
+      </div>
+    </section>
+  );
+}
+
+function AnalyticsCard({
+  children,
+  className = "",
+  title
+}: {
+  children: ReactNode;
+  className?: string;
+  title: string;
+}) {
+  return (
+    <article className={`analytics-card ${className}`}>
+      <div className="analytics-card-head">
+        <span className="drag-dots" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+        </span>
+        <h2>{title}</h2>
+        <button className="icon-button subtle" type="button" title="Mas opciones">
+          <MoreHorizontal size={18} />
+        </button>
+      </div>
+      {children}
+    </article>
+  );
+}
+
+function KpiCard({ detail, label, value }: { detail: string; label: string; value: number | string }) {
+  return (
+    <article className="analytics-kpi">
+      <small>{label}</small>
+      <strong>{value}</strong>
+      <span>{detail}</span>
+    </article>
+  );
+}
+
+function TimelineChart({ data }: { data: { count: number; label: string }[] }) {
+  const width = 720;
+  const height = 260;
+  const padding = 34;
+  const max = Math.max(1, ...data.map((item) => item.count));
+  const points = data
+    .map((item, index) => {
+      const x = padding + (index / Math.max(1, data.length - 1)) * (width - padding * 2);
+      const y = height - padding - (item.count / max) * (height - padding * 2);
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  return (
+    <div className="timeline-chart">
+      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Interacciones a lo largo del tiempo">
+        {[0, 1, 2].map((line) => {
+          const y = padding + line * ((height - padding * 2) / 2);
+          return <line key={line} x1={padding} x2={width - padding} y1={y} y2={y} />;
+        })}
+        <polyline points={points} />
+        {data.map((item, index) => {
+          const x = padding + (index / Math.max(1, data.length - 1)) * (width - padding * 2);
+          const y = height - padding - (item.count / max) * (height - padding * 2);
+          return <circle key={`${item.label}-${index}`} cx={x} cy={y} r="4" />;
+        })}
+      </svg>
+      <div className="timeline-labels">
+        {data.map((item, index) =>
+          index % Math.ceil(data.length / 8) === 0 || index === data.length - 1 ? (
+            <span key={item.label}>{item.label}</span>
+          ) : null
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BarRanking({ emptyText, rows }: { emptyText: string; rows: AnalyticsRow[] }) {
+  const max = Math.max(1, ...rows.map((row) => row.count));
+
+  if (!rows.length) {
+    return <EmptyState text={emptyText} />;
+  }
+
+  return (
+    <div className="bar-ranking">
+      {rows.map((row) => (
+        <div className="bar-row" key={row.label}>
+          <span>{row.label}</span>
+          <strong>{row.count}</strong>
+          <em>{row.percent}%</em>
+          <i style={{ width: `${Math.max(4, (row.count / max) * 100)}%` }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DonutBreakdown({
+  centerLabel,
+  rows,
+  total
+}: {
+  centerLabel: string;
+  rows: AnalyticsRow[];
+  total: number;
+}) {
+  if (!rows.length) {
+    return <EmptyState text="Aun no hay datos de dispositivo." />;
+  }
+
+  return (
+    <div className="donut-breakdown">
+      <div className="analytics-donut" style={{ background: donutGradient(rows, total) }}>
+        <span>{centerLabel}</span>
+      </div>
+      <div className="donut-legend">
+        {rows.map((row, index) => (
+          <span key={row.label}>
+            <i style={{ background: ANALYTICS_COLORS[index % ANALYTICS_COLORS.length] }} />
+            {row.label}
+            <strong>{row.count}</strong>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LocationPanel({ rows, total }: { rows: AnalyticsRow[]; total: number }) {
+  if (!rows.length) {
+    return <EmptyState text="Aun no hay ubicaciones registradas." />;
+  }
+
+  return (
+    <div className="location-panel">
+      <div className="geo-map" aria-hidden="true">
+        <span className="geo-blob north-america" />
+        <span className="geo-blob south-america" />
+        <span className="geo-blob europe" />
+        <span className="geo-blob africa" />
+        <span className="geo-blob asia" />
+        <span className="geo-blob australia" />
+        <div className="geo-scale">
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
         </div>
       </div>
-      <div className="dashboard-card">
-        <div className="link-table-head traffic-head">
-          <span>Destino</span>
-          <span>Clics</span>
-          <span>% Clics</span>
+      <div className="location-table">
+        <div>
+          <span>#</span>
+          <span>Pais</span>
+          <span>Interacciones</span>
+          <span>%</span>
         </div>
-        {topLinks.map((link) => (
-          <div className="traffic-row" key={link.id}>
-            <span>{link.targetUrl}</span>
-            <strong>{link.clicks}</strong>
-            <em>{stats.clicks ? Math.round((link.clicks / stats.clicks) * 100) : 0}%</em>
+        {rows.map((row, index) => (
+          <div key={row.label}>
+            <strong>{index + 1}</strong>
+            <span>{row.label}</span>
+            <span>{row.count}</span>
+            <span>{total ? row.percent : 0}</span>
           </div>
         ))}
       </div>
-    </section>
+    </div>
+  );
+}
+
+function TopLinksPanel({
+  items,
+  total
+}: {
+  items: { count: number; link: ShortLink }[];
+  total: number;
+}) {
+  if (!items.length) {
+    return <EmptyState text="Aun no hay interacciones en links." />;
+  }
+
+  return (
+    <div className="top-links-panel">
+      {items.map(({ count, link }) => (
+        <div key={link.id}>
+          <span>
+            <strong>{link.title}</strong>
+            <small>/{link.slug}</small>
+          </span>
+          <em>{count}</em>
+          <i style={{ width: `${total ? Math.max(4, (count / total) * 100) : 0}%` }} />
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -802,7 +1078,7 @@ function DomainsView({
   );
 }
 
-function PlaceholderView({ icon, title }: { icon: React.ReactNode; title: string }) {
+function PlaceholderView({ icon, title }: { icon: ReactNode; title: string }) {
   return (
     <section className="placeholder-view">
       {icon}
@@ -816,7 +1092,7 @@ function SegmentedLabel({ title }: { title: string }) {
   return <h3 className="form-section-label">{title}</h3>;
 }
 
-function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+function Metric({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {
   return (
     <article className="metric">
       <span>{icon}</span>
@@ -1235,6 +1511,121 @@ function topValue(values: string[]) {
   return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
 }
 
+function filterAnalyticsEvents(events: ClickEvent[], range: string, selectedLinkId: string) {
+  const rangeStart =
+    range === "all"
+      ? null
+      : new Date(Date.now() - (Number(range) - 1) * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  return events.filter((event) => {
+    const matchesLink = selectedLinkId === "all" || event.linkId === selectedLinkId;
+    const matchesRange = !rangeStart || event.createdAt.slice(0, 10) >= rangeStart;
+    return matchesLink && matchesRange;
+  });
+}
+
+function groupAnalytics(events: ClickEvent[], getLabel: (event: ClickEvent) => string): AnalyticsRow[] {
+  const total = events.length;
+  const counts = events.reduce<Record<string, number>>((accumulator, event) => {
+    const label = getLabel(event).trim() || "Desconocido";
+    accumulator[label] = (accumulator[label] || 0) + 1;
+    return accumulator;
+  }, {});
+
+  return Object.entries(counts)
+    .map(([label, count]) => ({
+      label,
+      count,
+      percent: total ? Math.round((count / total) * 1000) / 10 : 0
+    }))
+    .toSorted((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+}
+
+function readableReferrer(referrer: string) {
+  if (!referrer || referrer === "Directo") {
+    return "Directo";
+  }
+
+  return referrer
+    .replace(/^www\./, "")
+    .replace("linkedin.com", "LinkedIn")
+    .replace("facebook.com", "Facebook")
+    .replace("google.com", "Google")
+    .replace("t.co", "Twitter/X")
+    .replace("x.com", "Twitter/X");
+}
+
+function countryName(country: string) {
+  const labels: Record<string, string> = {
+    AU: "Australia",
+    CA: "Canada",
+    DE: "Germany",
+    ES: "Spain",
+    FR: "France",
+    GB: "United Kingdom",
+    IN: "India",
+    IT: "Italy",
+    JP: "Japan",
+    MX: "Mexico",
+    PT: "Portugal",
+    US: "United States"
+  };
+
+  return labels[country] || country || "Desconocido";
+}
+
+function deviceName(device: ClickEvent["device"]) {
+  return {
+    bot: "Robot",
+    desktop: "Escritorio",
+    mobile: "Dispositivo movil",
+    tablet: "Tableta",
+    unknown: "Desconocido"
+  }[device];
+}
+
+function donutGradient(rows: AnalyticsRow[], total: number) {
+  let cursor = 0;
+  const segments = rows.map((row, index) => {
+    const size = total ? (row.count / total) * 100 : 0;
+    const start = cursor;
+    cursor += size;
+    return `${ANALYTICS_COLORS[index % ANALYTICS_COLORS.length]} ${start}% ${cursor}%`;
+  });
+
+  return `conic-gradient(${segments.join(", ")})`;
+}
+
+function downloadAnalyticsCsv(events: ClickEvent[], links: ShortLink[]) {
+  const rows = [
+    ["created_at", "slug", "title", "country", "device", "browser", "referrer"],
+    ...events.map((event) => {
+      const link = links.find((item) => item.id === event.linkId);
+      return [
+        event.createdAt,
+        event.slug,
+        link?.title || "",
+        countryName(event.country),
+        deviceName(event.device),
+        event.browser,
+        readableReferrer(event.referrer)
+      ];
+    })
+  ];
+  const csv = rows.map((row) => row.map(csvValue).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `link-up-analytics-${new Date().toISOString().slice(0, 10)}.csv`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function csvValue(value: string) {
+  return `"${value.replaceAll('"', '""')}"`;
+}
+
 function isExpired(link: ShortLink) {
   const dateExpired = link.expiresAt ? new Date(link.expiresAt).getTime() <= Date.now() : false;
   const clickExpired = link.clickLimit ? link.clicks >= link.clickLimit : false;
@@ -1245,7 +1636,7 @@ function viewTitle(view: View) {
   return {
     create: "Crear nuevo enlace",
     links: "Todos los enlaces de seguimiento",
-    traffic: "Trafico",
+    analytics: "Analytics",
     users: "Usuarios",
     domains: "Dominios",
     imports: "Importacion masiva",
@@ -1257,7 +1648,7 @@ function viewSubtitle(view: View) {
   return {
     create: "Configura destino, UTMs, expiracion y QR.",
     links: "Gestiona tus enlaces, clics y URLs cortas.",
-    traffic: "Analiza clics y rendimiento por destino.",
+    analytics: "Origen, ubicacion y rendimiento de tus enlaces.",
     users: "Gestiona las personas del workspace.",
     domains: "Conecta dominios personalizados.",
     imports: "Carga enlaces en lote.",
