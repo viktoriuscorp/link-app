@@ -993,36 +993,25 @@ function LocationPanel({ rows, total }: { rows: AnalyticsRow[]; total: number })
     return <EmptyState text="Aun no hay ubicaciones registradas." />;
   }
 
+  const max = Math.max(1, ...rows.map((row) => row.count));
+
   return (
-    <div className="location-panel">
-      <div className="geo-map" aria-hidden="true">
-        <span className="geo-blob north-america" />
-        <span className="geo-blob south-america" />
-        <span className="geo-blob europe" />
-        <span className="geo-blob africa" />
-        <span className="geo-blob asia" />
-        <span className="geo-blob australia" />
-        <div className="geo-scale">
-          <i />
-          <i />
-          <i />
-          <i />
-          <i />
-        </div>
-      </div>
+    <div className="location-panel location-panel-list">
       <div className="location-table">
         <div>
           <span>#</span>
           <span>Pais</span>
           <span>Interacciones</span>
           <span>%</span>
+          <span aria-hidden="true" />
         </div>
         {rows.map((row, index) => (
           <div key={row.label}>
             <strong>{index + 1}</strong>
             <span>{row.label}</span>
             <span>{row.count}</span>
-            <span>{total ? row.percent : 0}</span>
+            <span>{total ? row.percent : 0}%</span>
+            <i style={{ width: `${Math.max(6, (row.count / max) * 100)}%` }} />
           </div>
         ))}
       </div>

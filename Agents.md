@@ -34,7 +34,7 @@ Objetivo del MVP:
 - HTTPS: activo y verificado en `dayibiza.link`, `www.dayibiza.link` y `link-app.comunikoo.workers.dev`.
 - Seguridad HTTPS: `http://dayibiza.link/*` redirige a `https://dayibiza.link/*` con `308`; las respuestas HTTPS incluyen `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`.
 - Certificado verificado el 2026-06-04: `dayibiza.link`, TLSv1.3, issuer `Google Trust Services`, HTTP/2.
-- Version Cloudflare actual: `86fe1c3a-155d-4dd4-96cc-7a60bbef3144`
+- Version Cloudflare actual: `53c09477-e1c9-4a96-9bd2-9613dc6c4398`
 - Plataforma: Cloudflare Workers con OpenNext.
 - Motivo: la app usa Next.js full-stack con route handlers, redirecciones dinamicas y persistencia. Cloudflare Pages queda mejor para sitios estaticos; para esta app se usa Workers/OpenNext.
 - KV namespace: `LINK_APP_STORE`
@@ -274,7 +274,7 @@ Validacion:
 
 Estado: desplegada en Cloudflare el 2026-06-04.
 
-Cloudflare version id: `86fe1c3a-155d-4dd4-96cc-7a60bbef3144`
+Cloudflare version id: `53c09477-e1c9-4a96-9bd2-9613dc6c4398`
 
 Contenido:
 
@@ -287,6 +287,7 @@ Contenido:
 - La antigua vista de trafico queda sustituida por Analytics.
 - Vista Analytics tipo Bitly con filtros por periodo y link.
 - Modulos Analytics: KPIs, interacciones en el tiempo, links top, referentes, ubicacion, dispositivos, navegadores y campanas.
+- Modulo de ubicacion simplificado a tabla por pais con interacciones y porcentaje; se elimino la ilustracion de mapa porque no representaba geolocalizacion real.
 - Exportacion CSV de eventos filtrados desde Analytics.
 - Seccion API Keys para generar y revocar claves de integracion.
 - Endpoint remoto `POST /api/v1/links` para crear enlaces desde MCP, n8n, CRMs u otros proyectos.
