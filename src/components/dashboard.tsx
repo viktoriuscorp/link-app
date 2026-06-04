@@ -47,6 +47,7 @@ type Toast = { tone: "success" | "error"; text: string } | null;
 type View = "create" | "links" | "analytics" | "apiKeys" | "users" | "domains" | "imports" | "settings";
 type LinkUpdateInput = Partial<Omit<ShortLink, "tags">> & { tags?: string };
 type AnalyticsRow = { count: number; label: string; percent: number };
+type UserFormState = { name: string; email: string; password: string; role: PublicUser["role"] };
 
 const ANALYTICS_COLORS = ["#4faeba", "#b8f0f5", "#3151c9", "#b8c8ff", "#f08b27", "#87d4c9"];
 
@@ -202,6 +203,65 @@ export function Dashboard({
       setToast({ tone: "success", text: "API Key creada. Copiala ahora." });
     } catch (error) {
       setToast({ tone: "error", text: error instanceof Error ? error.message : "No se pudo crear la API Key." });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function createUser(input: UserFormState) {
+    setBusy("create-user");
+    setToast(null);
+
+    try {
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input)
+      });
+      const payload = (await response.json()) as PublicUser & { message?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.message || "No se pudo crear el usuario.");
+      }
+
+      setUsers((current) => [...current, payload]);
+      setToast({ tone: "success", text: "Usuario creado." });
+      return true;
+    } catch (error) {
+      setToast({ tone: "error", text: error instanceof Error ? error.message : "No se pudo crear el usuario." });
+      return false;
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function updateUser(userId: string, input: UserFormState) {
+    setBusy(`update-user-${userId}`);
+    setToast(null);
+
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: input.name,
+          email: input.email,
+          password: input.password,
+          role: input.role
+        })
+      });
+      const payload = (await response.json()) as PublicUser & { message?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.message || "No se pudo editar el usuario.");
+      }
+
+      setUsers((current) => current.map((user) => (user.id === payload.id ? payload : user)));
+      setToast({ tone: "success", text: "Usuario actualizado." });
+      return true;
+    } catch (error) {
+      setToast({ tone: "error", text: error instanceof Error ? error.message : "No se pudo editar el usuario." });
+      return false;
     } finally {
       setBusy(null);
     }
@@ -476,7 +536,15 @@ export function Dashboard({
           />
         ) : null}
 
-        {activeView === "users" ? <UsersView currentUser={currentUser} users={users} /> : null}
+        {activeView === "users" ? (
+          <UsersView
+            busy={busy}
+            currentUser={currentUser}
+            users={users}
+            onCreate={createUser}
+            onUpdate={updateUser}
+          />
+        ) : null}
 
         {activeView === "domains" ? (
           <DomainsView
@@ -1186,33 +1254,218 @@ Content-Type: application/json
   );
 }
 
-function UsersView({ currentUser, users }: { currentUser: PublicUser; users: PublicUser[] }) {
+function UsersView({
+  busy,
+  currentUser,
+  users,
+  onCreate,
+  onUpdate
+}: {
+  busy: string | null;
+  currentUser: PublicUser;
+  users: PublicUser[];
+  onCreate: (input: UserFormState) => Promise<boolean>;
+  onUpdate: (userId: string, input: UserFormState) => Promise<boolean>;
+}) {
+  const canManageUsers = currentUser.role === "owner";
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [userForm, setUserForm] = useState<UserFormState>({
+    name: "",
+    email: "",
+    password: "",
+    role: "member"
+  });
+  const [editForm, setEditForm] = useState<UserFormState>({
+    name: "",
+    email: "",
+    password: "",
+    role: "member"
+  });
+
+  async function submitCreateUser(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const ok = await onCreate(userForm);
+
+    if (ok) {
+      setUserForm({ name: "", email: "", password: "", role: "member" });
+      setShowCreateForm(false);
+    }
+  }
+
+  async function submitUpdateUser(event: FormEvent<HTMLFormElement>, userId: string) {
+    event.preventDefault();
+    const ok = await onUpdate(userId, editForm);
+
+    if (ok) {
+      setEditingUserId(null);
+      setEditForm({ name: "", email: "", password: "", role: "member" });
+    }
+  }
+
+  function startEdit(user: PublicUser) {
+    setEditingUserId(user.id);
+    setEditForm({
+      name: user.name,
+      email: user.email,
+      password: "",
+      role: user.role
+    });
+  }
+
   return (
     <section className="dashboard-card">
       <div className="section-heading">
         <div>
           <h2>Usuarios en {currentUser.workspaceName}</h2>
-          <p>Todos los usuarios tienen acceso al workspace en esta V3 inicial.</p>
+          <p>Crea usuarios privados con email y contrasena inicial.</p>
         </div>
-        <button className="primary-action" type="button">
+        <button
+          className="primary-action"
+          disabled={!canManageUsers}
+          type="button"
+          onClick={() => setShowCreateForm((value) => !value)}
+        >
           <UserPlus size={18} />
-          Invitar usuario
+          {showCreateForm ? "Cerrar" : "Invitar usuario"}
         </button>
       </div>
+      {!canManageUsers ? (
+        <div className="notice-inline">Solo los usuarios owner pueden crear o editar usuarios.</div>
+      ) : null}
+      {showCreateForm ? (
+        <form className="user-editor user-editor-create" onSubmit={submitCreateUser}>
+          <label>
+            Nombre
+            <input
+              required
+              minLength={2}
+              value={userForm.name}
+              onChange={(event) => setUserForm((current) => ({ ...current, name: event.target.value }))}
+            />
+          </label>
+          <label>
+            Email
+            <input
+              required
+              type="email"
+              value={userForm.email}
+              onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))}
+            />
+          </label>
+          <label>
+            Contrasena inicial
+            <input
+              required
+              minLength={8}
+              type="password"
+              value={userForm.password}
+              onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))}
+            />
+          </label>
+          <label>
+            Rol
+            <select
+              value={userForm.role}
+              onChange={(event) =>
+                setUserForm((current) => ({ ...current, role: event.target.value as PublicUser["role"] }))
+              }
+            >
+              <option value="member">Member</option>
+              <option value="owner">Owner</option>
+            </select>
+          </label>
+          <button className="primary-action" disabled={busy === "create-user"} type="submit">
+            {busy === "create-user" ? <Loader2 className="spin" size={18} /> : <UserPlus size={18} />}
+            Crear usuario
+          </button>
+        </form>
+      ) : null}
       <div className="users-table">
         <div className="users-head">
           <span>Correo electronico</span>
           <span>Rol</span>
           <span>Ultima actividad</span>
+          <span />
         </div>
         {users.map((user) => (
           <div className="users-row" key={user.id}>
-            <span className="user-cell">
-              <i>{initials(user.name)}</i>
-              <strong>{user.email}</strong>
-            </span>
-            <span>{user.role}</span>
-            <span>{user.lastLoginAt ? formatDate(user.lastLoginAt) : "-"}</span>
+            {editingUserId === user.id ? (
+              <form className="user-editor user-editor-inline" onSubmit={(event) => submitUpdateUser(event, user.id)}>
+                <label>
+                  Nombre
+                  <input
+                    required
+                    minLength={2}
+                    value={editForm.name}
+                    onChange={(event) => setEditForm((current) => ({ ...current, name: event.target.value }))}
+                  />
+                </label>
+                <label>
+                  Email
+                  <input
+                    required
+                    type="email"
+                    value={editForm.email}
+                    onChange={(event) => setEditForm((current) => ({ ...current, email: event.target.value }))}
+                  />
+                </label>
+                <label>
+                  Nueva contrasena
+                  <input
+                    minLength={8}
+                    placeholder="Dejar vacia"
+                    type="password"
+                    value={editForm.password}
+                    onChange={(event) => setEditForm((current) => ({ ...current, password: event.target.value }))}
+                  />
+                </label>
+                <label>
+                  Rol
+                  <select
+                    value={editForm.role}
+                    onChange={(event) =>
+                      setEditForm((current) => ({ ...current, role: event.target.value as PublicUser["role"] }))
+                    }
+                  >
+                    <option value="member">Member</option>
+                    <option value="owner">Owner</option>
+                  </select>
+                </label>
+                <div className="user-editor-actions">
+                  <button className="small-button" disabled={busy === `update-user-${user.id}`} type="submit">
+                    {busy === `update-user-${user.id}` ? <Loader2 className="spin" size={15} /> : <Save size={15} />}
+                    Guardar
+                  </button>
+                  <button className="icon-button subtle" type="button" onClick={() => setEditingUserId(null)}>
+                    <X size={16} />
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <span className="user-cell">
+                  <i>{initials(user.name)}</i>
+                  <span>
+                    <strong>{user.email}</strong>
+                    <small>{user.name}</small>
+                  </span>
+                </span>
+                <span>{user.role}</span>
+                <span>{user.lastLoginAt ? formatDate(user.lastLoginAt) : "-"}</span>
+                <span>
+                  <button
+                    className="icon-button subtle"
+                    disabled={!canManageUsers}
+                    type="button"
+                    title="Editar usuario"
+                    onClick={() => startEdit(user)}
+                  >
+                    <Edit3 size={16} />
+                  </button>
+                </span>
+              </>
+            )}
           </div>
         ))}
       </div>

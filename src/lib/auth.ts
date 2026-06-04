@@ -53,6 +53,86 @@ export async function registerUser(input: {
   return { user: toPublicUser(user), sessionId };
 }
 
+export async function createPrivateUser(input: {
+  name: string;
+  email: string;
+  password: string;
+  role: User["role"];
+  workspaceName: string;
+}) {
+  const store = await readStore();
+  const email = input.email.toLowerCase();
+
+  if (store.users.some((user) => user.email === email)) {
+    throw new Error("Ya existe una cuenta con ese email.");
+  }
+
+  const salt = nanoid(24);
+  const now = new Date().toISOString();
+  const user: User = {
+    id: nanoid(),
+    name: input.name,
+    email,
+    passwordHash: await hashPassword(input.password, salt),
+    passwordSalt: salt,
+    role: input.role,
+    workspaceName: input.workspaceName || "My Workspace",
+    createdAt: now,
+    lastLoginAt: null
+  };
+
+  store.users.push(user);
+  await writeStore(store);
+  return toPublicUser(user);
+}
+
+export async function updatePrivateUser(
+  userId: string,
+  input: {
+    name?: string;
+    email?: string;
+    password?: string;
+    role?: User["role"];
+  }
+) {
+  const store = await readStore();
+  const user = store.users.find((item) => item.id === userId);
+
+  if (!user) {
+    throw new Error("Usuario no encontrado.");
+  }
+
+  if (input.email) {
+    const email = input.email.toLowerCase();
+    if (store.users.some((item) => item.id !== userId && item.email === email)) {
+      throw new Error("Ya existe una cuenta con ese email.");
+    }
+    user.email = email;
+  }
+
+  if (input.name) {
+    user.name = input.name;
+  }
+
+  if (input.role) {
+    const ownerCount = store.users.filter((item) => item.role === "owner").length;
+    if (user.role === "owner" && input.role === "member" && ownerCount <= 1) {
+      throw new Error("Debe quedar al menos un usuario owner.");
+    }
+    user.role = input.role;
+  }
+
+  if (input.password) {
+    const salt = nanoid(24);
+    user.passwordSalt = salt;
+    user.passwordHash = await hashPassword(input.password, salt);
+    store.sessions = store.sessions.filter((session) => session.userId !== userId);
+  }
+
+  await writeStore(store);
+  return toPublicUser(user);
+}
+
 export async function loginUser(input: { email: string; password: string }) {
   const store = await readStore();
   const user = store.users.find((item) => item.email === input.email.toLowerCase());

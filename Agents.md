@@ -34,7 +34,7 @@ Objetivo del MVP:
 - HTTPS: activo y verificado en `dayibiza.link`, `www.dayibiza.link` y `link-app.comunikoo.workers.dev`.
 - Seguridad HTTPS: `http://dayibiza.link/*` redirige a `https://dayibiza.link/*` con `308`; las respuestas HTTPS incluyen `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`.
 - Certificado verificado el 2026-06-04: `dayibiza.link`, TLSv1.3, issuer `Google Trust Services`, HTTP/2.
-- Version Cloudflare actual: `53c09477-e1c9-4a96-9bd2-9613dc6c4398`
+- Version Cloudflare actual: `29f31ec3-501e-495a-9af8-b81ae4ca41c1`
 - Plataforma: Cloudflare Workers con OpenNext.
 - Motivo: la app usa Next.js full-stack con route handlers, redirecciones dinamicas y persistencia. Cloudflare Pages queda mejor para sitios estaticos; para esta app se usa Workers/OpenNext.
 - KV namespace: `LINK_APP_STORE`
@@ -274,7 +274,7 @@ Validacion:
 
 Estado: desplegada en Cloudflare el 2026-06-04.
 
-Cloudflare version id: `53c09477-e1c9-4a96-9bd2-9613dc6c4398`
+Cloudflare version id: `29f31ec3-501e-495a-9af8-b81ae4ca41c1`
 
 Contenido:
 
@@ -294,6 +294,8 @@ Contenido:
 - Las API Keys se guardan hasheadas y solo se revela el token completo una vez.
 - Cada API Key tiene scope `links:create`, prefijo visible y `lastUsedAt`.
 - Vista de usuarios con listado del workspace.
+- Gestion privada de usuarios desde el dashboard: crear/invitar usuario con nombre, email, contrasena inicial y rol; editar nombre, email, rol y contrasena.
+- Solo usuarios `owner` pueden crear o editar usuarios; se protege que siempre quede al menos un `owner`.
 - Vista de dominios inspirada en el flujo de conectar dominio propio.
 - Login con cookie HTTP-only `link_app_session`.
 - Registro publico desactivado: `/register` redirige a `/login` y `/api/auth/register` devuelve `403`.

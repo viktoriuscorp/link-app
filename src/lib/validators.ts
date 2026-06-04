@@ -73,6 +73,20 @@ export const registerSchema = loginSchema.extend({
   workspaceName: z.string().trim().min(2).max(80).optional().default("My Workspace")
 });
 
+export const createUserSchema = z.object({
+  name: z.string().trim().min(2, "Introduce el nombre.").max(80),
+  email: authEmailSchema,
+  password: z.string().min(8, "La contrasena debe tener al menos 8 caracteres."),
+  role: z.enum(["owner", "member"]).optional().default("member")
+});
+
+export const updateUserSchema = z.object({
+  name: z.string().trim().min(2, "Introduce el nombre.").max(80).optional(),
+  email: authEmailSchema.optional(),
+  password: z.union([z.string().min(8, "La contrasena debe tener al menos 8 caracteres."), z.literal("")]).optional(),
+  role: z.enum(["owner", "member"]).optional()
+});
+
 export const createApiKeySchema = z.object({
   name: z.string().trim().min(2, "Pon un nombre para la API Key.").max(80)
 });

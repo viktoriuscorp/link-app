@@ -1628,12 +1628,12 @@ code {
 
 .users-head,
 .users-row {
-  grid-template-columns: minmax(260px, 1fr) 160px 180px;
+  grid-template-columns: minmax(260px, 1fr) 130px 170px 46px;
   gap: 18px;
 }
 
 .users-row {
-  min-height: 74px;
+  min-height: 76px;
   padding: 0 18px;
   border-top: 1px solid #e7ebf2;
 }
@@ -1641,6 +1641,83 @@ code {
 .user-cell {
   gap: 12px;
   min-width: 0;
+}
+
+.user-cell span {
+  min-width: 0;
+}
+
+.user-cell strong,
+.user-cell small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-cell small {
+  margin-top: 3px;
+  color: #6f7785;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.notice-inline {
+  margin: 14px 18px 0;
+  padding: 11px 12px;
+  color: #6f561f;
+  background: #fff7d7;
+  border: 1px solid #f1df93;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.user-editor {
+  display: grid;
+  gap: 12px;
+}
+
+.user-editor-create {
+  grid-template-columns: minmax(160px, 1fr) minmax(220px, 1.1fr) minmax(180px, 1fr) 130px auto;
+  align-items: end;
+  padding: 18px;
+  border-bottom: 1px solid #e7ebf2;
+}
+
+.user-editor-inline {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(150px, 1fr) minmax(220px, 1.1fr) minmax(170px, 1fr) 120px auto;
+  align-items: end;
+  width: 100%;
+  padding: 16px 0;
+}
+
+.user-editor label {
+  display: grid;
+  gap: 7px;
+  color: #6f7785;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.user-editor input,
+.user-editor select {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 0 11px;
+  color: #263241;
+  background: #fff;
+  border: 1px solid #dfe5ee;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 800;
+}
+
+.user-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .domain-hero {
@@ -1807,11 +1884,22 @@ code {
   .sidebar-nav,
   .users-head,
   .users-row,
+  .user-editor-create,
+  .user-editor-inline,
   .donut-breakdown,
   .api-key-head,
   .api-key-row,
   .api-endpoint {
     grid-template-columns: 1fr;
+  }
+
+  .users-head {
+    display: none;
+  }
+
+  .users-row {
+    align-items: start;
+    padding: 14px;
   }
 
   .analytics-toolbar {
