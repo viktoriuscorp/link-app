@@ -22,14 +22,18 @@ Objetivo del MVP:
 - GitHub: `https://github.com/viktoriuscorp/link-app`
 - Rama principal: `main`
 - Version inicial etiquetada: `v1-link-up`
+- Versiones etiquetadas: `v1-link-up`, `v2-link-up`, `v3-link-up`
 
 ## Produccion
 
 - URL actual: `https://link-app.comunikoo.workers.dev`
 - Dominio custom configurado: `https://dayibiza.link`
 - Alias custom configurado: `https://www.dayibiza.link`
-- Estado del dominio custom el 2026-06-04: triggers aplicados con `wrangler triggers deploy`; Cloudflare nameservers responden, pero la delegacion publica del registry `.link` y el certificado HTTPS pueden tardar unos minutos en propagarse.
-- Version Cloudflare actual: `101a812d-30ae-45c2-bac0-fb5f481cf83a`
+- Estado del dominio custom el 2026-06-04: activo en Cloudflare Workers.
+- HTTPS: activo y verificado en `dayibiza.link`, `www.dayibiza.link` y `link-app.comunikoo.workers.dev`.
+- Seguridad HTTPS: `http://dayibiza.link/*` redirige a `https://dayibiza.link/*` con `308`; las respuestas HTTPS incluyen `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`.
+- Certificado verificado el 2026-06-04: `dayibiza.link`, TLSv1.3, issuer `Google Trust Services`, HTTP/2.
+- Version Cloudflare actual: `2caa2c26-43f9-4f4b-9ef9-745e48821086`
 - Plataforma: Cloudflare Workers con OpenNext.
 - Motivo: la app usa Next.js full-stack con route handlers, redirecciones dinamicas y persistencia. Cloudflare Pages queda mejor para sitios estaticos; para esta app se usa Workers/OpenNext.
 - KV namespace: `LINK_APP_STORE`
@@ -112,6 +116,7 @@ git push origin v1-link-up
 - `src/app/api/domains/route.ts`: listar y crear dominios.
 - `src/app/api/domains/[id]/route.ts`: borrar dominios.
 - `src/app/api/domains/[id]/verify/route.ts`: verificar dominios.
+- `src/middleware.ts`: Edge Middleware para forzar HTTP -> HTTPS fuera de localhost y anadir HSTS. Se usa `middleware.ts` aunque Next 16 recomiende `proxy.ts` porque OpenNext Cloudflare 1.19.11 no soporta Node Middleware de `proxy.ts`.
 - `src/lib/auth.ts`: registro, login, sesiones, cookie HTTP-only y usuario actual.
 - `src/lib/store.ts`: capa de persistencia. Usa Cloudflare KV si existe binding; si no, JSON local.
 - `src/lib/validators.ts`: esquemas Zod.
@@ -251,9 +256,11 @@ Validacion:
 - Smoke test produccion: crear link V2, comprobar redireccion `307` y borrar link de prueba.
 - Pendiente externo: DNS publico de `dayibiza.link` todavia puede tardar en resolver tras el registro.
 
-### v3-link-up local
+### v3-link-up
 
-Estado: version local en desarrollo el 2026-06-04. No desplegada todavia en Cloudflare.
+Estado: desplegada en Cloudflare el 2026-06-04.
+
+Cloudflare version id: `2caa2c26-43f9-4f4b-9ef9-745e48821086`
 
 Contenido:
 
@@ -269,6 +276,8 @@ Contenido:
 - Primer usuario registrado queda como `owner`; los siguientes quedan como `member`.
 - APIs del dashboard protegidas por sesion.
 - Los slugs publicos siguen funcionando sin login.
+- HTTP forzado a HTTPS en produccion.
+- HSTS activado para dominios no locales.
 
 Validacion local:
 
@@ -281,13 +290,23 @@ Validacion local:
 - Slug publico probado con redireccion `307` sin sesion.
 - Captura visual del navegador integrado intentada, pero el mecanismo de captura quedo bloqueado en esta sesion; se valido navegacion por DOM de las vistas principales.
 
-Pendiente antes de desplegar V3:
+Validacion produccion:
+
+- `npm run deploy`
+- `https://dayibiza.link/login` devuelve `200`.
+- `https://www.dayibiza.link/login` devuelve `200`.
+- `https://link-app.comunikoo.workers.dev/login` devuelve `200`.
+- `http://dayibiza.link/login` redirige a `https://dayibiza.link/login` con `308`.
+- `https://dayibiza.link/` redirige a `/login` con `307` si no hay sesion.
+- `https://dayibiza.link/api/snapshot` devuelve `401` sin sesion.
+- TLS verificado con `curl -vI`: TLSv1.3, certificado para `dayibiza.link`, issuer `Google Trust Services`.
+
+Pendiente despues de desplegar V3:
 
 - Decidir si el primer registro en produccion queda abierto o si se bloquea tras crear el owner.
 - Separar datos por usuario/workspace antes de multiusuario real.
 - Implementar invitaciones reales desde la vista de usuarios.
 - Revisar UX responsive en navegador con captura estable.
-- Ejecutar `npm run deploy` solo cuando el usuario pida subir V3 a Cloudflare.
 - Si se anade cuota de links, debe ser editable/configurable; por defecto no hay limite de links.
 
 ## Reglas Para Futuras Sesiones
