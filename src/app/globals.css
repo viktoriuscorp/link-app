@@ -894,18 +894,11 @@ code {
   font-size: 13px;
 }
 
-.usage-box span {
-  height: 8px;
-  display: block;
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.usage-box i {
-  height: 100%;
-  display: block;
-  background: #3b6ff5;
+.usage-box small {
+  color: #cfe3ff;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .dashboard-main {

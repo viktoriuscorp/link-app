@@ -258,7 +258,7 @@ Estado: version local en desarrollo el 2026-06-04. No desplegada todavia en Clou
 Contenido:
 
 - Redisenio del panel hacia un dashboard tipo Linkly/Bitly.
-- Sidebar fija con workspace, navegacion principal, uso y logout.
+- Sidebar fija con workspace, navegacion principal, uso de links ilimitados y logout.
 - Vistas separadas: crear enlace, enlaces, trafico, usuarios, dominios, importacion masiva y configuracion.
 - Vista de crear enlace con panel de destino, slug/dominio, nombre interno, UTMs, campana, tags, expiracion, limite de clics, fallback y previsualizacion lateral.
 - Vista de enlaces con tabla densa, buscador, exportacion visual y acciones existentes al expandir cada fila.
@@ -288,6 +288,7 @@ Pendiente antes de desplegar V3:
 - Implementar invitaciones reales desde la vista de usuarios.
 - Revisar UX responsive en navegador con captura estable.
 - Ejecutar `npm run deploy` solo cuando el usuario pida subir V3 a Cloudflare.
+- Si se anade cuota de links, debe ser editable/configurable; por defecto no hay limite de links.
 
 ## Reglas Para Futuras Sesiones
 

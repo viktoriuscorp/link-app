@@ -333,10 +333,8 @@ export function Dashboard({
         </nav>
         <div className="usage-box">
           <strong>Uso</strong>
-          <p>{stats.clicks} / 2000 clics</p>
-          <span>
-            <i style={{ width: `${Math.min(100, (stats.clicks / 2000) * 100)}%` }} />
-          </span>
+          <p>{stats.links} links creados</p>
+          <small>Ilimitado</small>
         </div>
         <button className="sidebar-logout" onClick={logout}>
           <LogOut size={17} />
