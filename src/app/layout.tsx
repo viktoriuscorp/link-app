@@ -3,7 +3,10 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "dayibiza.link",
-  description: "Acortador privado de links con dominios personalizados"
+  description: "Acortador privado de links con dominios personalizados",
+  icons: {
+    icon: "/icon.svg"
+  }
 };
 
 export default function RootLayout({
