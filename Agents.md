@@ -210,6 +210,7 @@ Contenido:
 - Captura de pais, dispositivo, navegador y referrer.
 - QR dinamico descargable por link.
 - Edicion inline de links.
+- Edicion del slug para cambiar la URL corta.
 - Activar/pausar links.
 - Tags y campanas.
 - UTM builder en el formulario de creacion.

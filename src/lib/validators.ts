@@ -47,6 +47,7 @@ export const createLinkSchema = z.object({
 
 export const updateLinkSchema = z.object({
   title: z.string().trim().max(90).optional(),
+  slug: slugSchema.optional(),
   targetUrl: urlSchema.optional(),
   isActive: z.boolean().optional(),
   tags: optionalTagsSchema,

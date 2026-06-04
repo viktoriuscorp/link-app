@@ -219,7 +219,7 @@ export async function updateShortLink(
   input: Partial<
     Pick<
       ShortLink,
-      "title" | "targetUrl" | "isActive" | "campaign" | "expiresAt" | "clickLimit" | "fallbackUrl"
+      "title" | "slug" | "targetUrl" | "isActive" | "campaign" | "expiresAt" | "clickLimit" | "fallbackUrl"
     >
   > & { tags?: string | string[] }
 ) {
@@ -228,6 +228,18 @@ export async function updateShortLink(
 
   if (!link) {
     throw new Error("Link no encontrado.");
+  }
+
+  if (input.slug && input.slug !== link.slug) {
+    const collision = store.links.some(
+      (item) => item.id !== link.id && item.slug === input.slug && item.domainId === link.domainId
+    );
+
+    if (collision) {
+      throw new Error("Ese slug ya esta en uso para este dominio.");
+    }
+
+    link.slug = input.slug;
   }
 
   link.title = input.title ?? link.title;

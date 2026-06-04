@@ -632,6 +632,7 @@ function LinkItem({
     event.preventDefault();
     await onUpdate({
       title: editForm.title,
+      slug: editForm.slug,
       targetUrl: editForm.targetUrl,
       isActive: editForm.isActive,
       tags: editForm.tags,
@@ -703,6 +704,16 @@ function LinkItem({
                   />
                 </label>
                 <label>
+                  Slug / URL corta
+                  <input
+                    required
+                    value={editForm.slug}
+                    onChange={(event) => setEditForm((current) => ({ ...current, slug: event.target.value }))}
+                  />
+                </label>
+              </div>
+              <div className="form-row">
+                <label>
                   Activo
                   <select
                     value={editForm.isActive ? "true" : "false"}
@@ -714,15 +725,19 @@ function LinkItem({
                     <option value="false">Pausado</option>
                   </select>
                 </label>
+                <label>
+                  URL destino
+                  <input
+                    required
+                    type="url"
+                    placeholder="https://ejemplo.com/nueva-url"
+                    value={editForm.targetUrl}
+                    onChange={(event) =>
+                      setEditForm((current) => ({ ...current, targetUrl: event.target.value }))
+                    }
+                  />
+                </label>
               </div>
-              <label>
-                URL destino
-                <input
-                  required
-                  value={editForm.targetUrl}
-                  onChange={(event) => setEditForm((current) => ({ ...current, targetUrl: event.target.value }))}
-                />
-              </label>
               <div className="form-row">
                 <label>
                   Campana
@@ -885,6 +900,7 @@ function withUtmParams(form: typeof emptyLinkForm) {
 function formFromLink(link: ShortLink) {
   return {
     title: link.title,
+    slug: link.slug,
     targetUrl: link.targetUrl,
     isActive: link.isActive,
     tags: link.tags.join(", "),
