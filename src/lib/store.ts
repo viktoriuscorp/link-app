@@ -12,7 +12,9 @@ type StoreKv = {
 const emptyStore = (): Store => ({
   domains: [],
   links: [],
-  clickEvents: []
+  clickEvents: [],
+  users: [],
+  sessions: []
 });
 
 type ClickMetadata = {
@@ -312,7 +314,9 @@ function normalizeStore(store: Partial<Store>): Store {
       clickLimit: link.clickLimit ?? null,
       fallbackUrl: link.fallbackUrl ?? ""
     })),
-    clickEvents: store.clickEvents ?? []
+    clickEvents: store.clickEvents ?? [],
+    users: store.users ?? [],
+    sessions: (store.sessions ?? []).filter((session) => new Date(session.expiresAt).getTime() > Date.now())
   };
 
   for (const link of normalized.links) {

@@ -60,3 +60,15 @@ export const updateLinkSchema = z.object({
 export const createDomainSchema = z.object({
   hostname: hostnameSchema
 });
+
+export const authEmailSchema = z.string().trim().toLowerCase().email("Introduce un email valido.");
+
+export const loginSchema = z.object({
+  email: authEmailSchema,
+  password: z.string().min(8, "La contrasena debe tener al menos 8 caracteres.")
+});
+
+export const registerSchema = loginSchema.extend({
+  name: z.string().trim().min(2, "Introduce tu nombre.").max(80),
+  workspaceName: z.string().trim().min(2).max(80).optional().default("My Workspace")
+});

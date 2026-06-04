@@ -9,28 +9,38 @@ import {
   Clipboard,
   Download,
   Edit3,
-  Filter,
+  ExternalLink,
+  FileUp,
   Globe2,
+  LayoutDashboard,
   Link2,
   Loader2,
+  LogOut,
   MousePointerClick,
   Plus,
   Power,
   QrCode,
   RefreshCw,
   Save,
-  Send,
+  Search,
+  Settings,
   Tags,
   Trash2,
-  X
+  UserPlus,
+  Users,
+  X,
+  Zap
 } from "lucide-react";
 import QRCode from "qrcode";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { PublicUser } from "@/lib/auth";
 import type { ClickEvent, Domain, ShortLink, Store } from "@/lib/types";
 import { DEFAULT_BASE_URL } from "@/lib/config";
 
 type Snapshot = Pick<Store, "domains" | "links" | "clickEvents">;
 type Toast = { tone: "success" | "error"; text: string } | null;
+type View = "create" | "links" | "traffic" | "users" | "domains" | "imports" | "settings";
 type LinkUpdateInput = Partial<Omit<ShortLink, "tags">> & { tags?: string };
 
 const emptyLinkForm = {
@@ -50,13 +60,24 @@ const emptyLinkForm = {
   utmTerm: ""
 };
 
-export function Dashboard({ initialSnapshot }: { initialSnapshot: Snapshot }) {
+export function Dashboard({
+  currentUser,
+  initialSnapshot,
+  initialUsers
+}: {
+  currentUser: PublicUser;
+  initialSnapshot: Snapshot;
+  initialUsers: PublicUser[];
+}) {
+  const router = useRouter();
   const [domains, setDomains] = useState(initialSnapshot.domains);
   const [links, setLinks] = useState(initialSnapshot.links);
   const [clickEvents, setClickEvents] = useState(initialSnapshot.clickEvents);
+  const [users, setUsers] = useState(initialUsers);
   const [toast, setToast] = useState<Toast>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [activeView, setActiveView] = useState<View>("links");
   const [linkForm, setLinkForm] = useState(emptyLinkForm);
   const [domainForm, setDomainForm] = useState({ hostname: "" });
 
@@ -86,11 +107,22 @@ export function Dashboard({ initialSnapshot }: { initialSnapshot: Snapshot }) {
   }, [links, query]);
 
   async function refresh() {
-    const response = await fetch("/api/snapshot", { cache: "no-store" });
-    const snapshot = (await response.json()) as Snapshot;
+    const [snapshotResponse, usersResponse] = await Promise.all([
+      fetch("/api/snapshot", { cache: "no-store" }),
+      fetch("/api/users", { cache: "no-store" })
+    ]);
+    const snapshot = (await snapshotResponse.json()) as Snapshot;
+    const latestUsers = (await usersResponse.json()) as PublicUser[];
     setDomains(snapshot.domains);
     setLinks(snapshot.links);
     setClickEvents(snapshot.clickEvents);
+    setUsers(latestUsers);
+  }
+
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+    router.refresh();
   }
 
   async function createLink(event: FormEvent<HTMLFormElement>) {
@@ -122,7 +154,8 @@ export function Dashboard({ initialSnapshot }: { initialSnapshot: Snapshot }) {
 
       setLinks((current) => [payload, ...current]);
       setLinkForm(emptyLinkForm);
-      setToast({ tone: "success", text: "Link V2 creado." });
+      setActiveView("links");
+      setToast({ tone: "success", text: "Link creado." });
     } catch (error) {
       setToast({ tone: "error", text: error instanceof Error ? error.message : "No se pudo crear." });
     } finally {
@@ -260,188 +293,485 @@ export function Dashboard({ initialSnapshot }: { initialSnapshot: Snapshot }) {
   }
 
   return (
-    <main className="shell">
-      <header className="topbar">
-        <div className="brand">
+    <main className="dashboard-app">
+      <aside className="sidebar">
+        <div className="sidebar-brand">
           <span className="brand-mark">
             <Link2 size={21} strokeWidth={2.4} />
           </span>
+          <strong>Link Up</strong>
+        </div>
+        <div className="workspace-switcher">
+          <span>{initials(currentUser.name)}</span>
           <div>
-            <h1>Link App</h1>
-            <p>Version 2 local</p>
+            <strong>{currentUser.name}</strong>
+            <p>{currentUser.workspaceName}</p>
           </div>
         </div>
-        <div className="header-actions">
-          {toast ? <span className={`toast ${toast.tone}`}>{toast.text}</span> : null}
-          <button className="icon-button" type="button" onClick={refresh} title="Actualizar">
-            <RefreshCw size={18} />
-          </button>
+        <nav className="sidebar-nav" aria-label="Navegacion principal">
+          <NavButton icon={<Plus size={18} />} active={activeView === "create"} onClick={() => setActiveView("create")}>
+            Crear nuevo enlace
+          </NavButton>
+          <NavButton icon={<Link2 size={18} />} active={activeView === "links"} onClick={() => setActiveView("links")}>
+            Enlaces
+          </NavButton>
+          <NavButton icon={<BarChart3 size={18} />} active={activeView === "traffic"} onClick={() => setActiveView("traffic")}>
+            Trafico
+          </NavButton>
+          <NavButton icon={<Users size={18} />} active={activeView === "users"} onClick={() => setActiveView("users")}>
+            Usuarios
+          </NavButton>
+          <NavButton icon={<Globe2 size={18} />} active={activeView === "domains"} onClick={() => setActiveView("domains")}>
+            Dominios
+          </NavButton>
+          <NavButton icon={<FileUp size={18} />} active={activeView === "imports"} onClick={() => setActiveView("imports")}>
+            Importacion masiva
+          </NavButton>
+          <NavButton icon={<Settings size={18} />} active={activeView === "settings"} onClick={() => setActiveView("settings")}>
+            Configuracion
+          </NavButton>
+        </nav>
+        <div className="usage-box">
+          <strong>Uso</strong>
+          <p>{stats.clicks} / 2000 clics</p>
+          <span>
+            <i style={{ width: `${Math.min(100, (stats.clicks / 2000) * 100)}%` }} />
+          </span>
         </div>
-      </header>
+        <button className="sidebar-logout" onClick={logout}>
+          <LogOut size={17} />
+          Salir
+        </button>
+      </aside>
 
-      <section className="stats-grid v2" aria-label="Resumen">
-        <Metric icon={<Link2 size={18} />} label="Links" value={stats.links} />
-        <Metric icon={<Power size={18} />} label="Activos" value={stats.activeLinks} />
-        <Metric icon={<MousePointerClick size={18} />} label="Clics" value={stats.clicks} />
-        <Metric icon={<BarChart3 size={18} />} label="Unicos" value={stats.uniqueClicks} />
+      <section className="dashboard-main">
+        <header className="dashboard-topbar">
+          <div>
+            <h1>{viewTitle(activeView)}</h1>
+            <p>{viewSubtitle(activeView)}</p>
+          </div>
+          <div className="header-actions">
+            {toast ? <span className={`toast ${toast.tone}`}>{toast.text}</span> : null}
+            <button className="icon-button" type="button" onClick={refresh} title="Actualizar">
+              <RefreshCw size={18} />
+            </button>
+            <button className="primary-action" type="button" onClick={() => setActiveView("create")}>
+              <Plus size={18} />
+              Nuevo enlace
+            </button>
+          </div>
+        </header>
+
+        {activeView === "create" ? (
+          <CreateLinkView
+            busy={busy}
+            domains={domains}
+            linkForm={linkForm}
+            setLinkForm={setLinkForm}
+            onSubmit={createLink}
+          />
+        ) : null}
+
+        {activeView === "links" ? (
+          <LinksView
+            busy={busy}
+            clickEvents={clickEvents}
+            domains={domains}
+            filteredLinks={filteredLinks}
+            query={query}
+            setQuery={setQuery}
+            onCopy={copyShortUrl}
+            onDelete={deleteLink}
+            onUpdate={updateLink}
+          />
+        ) : null}
+
+        {activeView === "traffic" ? <TrafficView clickEvents={clickEvents} links={links} stats={stats} /> : null}
+
+        {activeView === "users" ? <UsersView currentUser={currentUser} users={users} /> : null}
+
+        {activeView === "domains" ? (
+          <DomainsView
+            busy={busy}
+            domainForm={domainForm}
+            domains={domains}
+            setDomainForm={setDomainForm}
+            onAddDomain={addDomain}
+            onDeleteDomain={deleteDomain}
+            onForceVerify={(id) => verifyDomain(id, true)}
+            onVerify={(id) => verifyDomain(id)}
+          />
+        ) : null}
+
+        {activeView === "imports" ? <PlaceholderView icon={<FileUp size={24} />} title="Importacion masiva" /> : null}
+        {activeView === "settings" ? <PlaceholderView icon={<Settings size={24} />} title="Configuracion" /> : null}
       </section>
+    </main>
+  );
+}
 
-      <div className="workspace v2-workspace">
-        <section className="panel create-panel">
-          <div className="panel-title">
-            <h2>Nuevo link</h2>
-            <Send size={18} />
-          </div>
-          <form className="form-stack" onSubmit={createLink}>
+function NavButton({
+  active,
+  children,
+  icon,
+  onClick
+}: {
+  active: boolean;
+  children: React.ReactNode;
+  icon: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button className={`nav-button ${active ? "active" : ""}`} type="button" onClick={onClick}>
+      {icon}
+      {children}
+    </button>
+  );
+}
+
+function CreateLinkView({
+  busy,
+  domains,
+  linkForm,
+  setLinkForm,
+  onSubmit
+}: {
+  busy: string | null;
+  domains: Domain[];
+  linkForm: typeof emptyLinkForm;
+  setLinkForm: React.Dispatch<React.SetStateAction<typeof emptyLinkForm>>;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <div className="create-layout">
+      <section className="link-builder">
+        <form className="form-stack" onSubmit={onSubmit}>
+          <div className="destination-card">
             <label>
-              URL destino
+              <span>
+                <Link2 size={16} />
+                Destino
+              </span>
               <input
                 required
-                placeholder="https://ejemplo.com/pagina-larga"
+                placeholder="https://www.example.com"
                 value={linkForm.targetUrl}
                 onChange={(event) =>
                   setLinkForm((current) => ({ ...current, targetUrl: event.target.value }))
                 }
               />
             </label>
-            <div className="form-row">
-              <label>
-                Titulo
-                <input
-                  placeholder="Campana junio"
-                  value={linkForm.title}
-                  onChange={(event) =>
-                    setLinkForm((current) => ({ ...current, title: event.target.value }))
-                  }
-                />
-              </label>
-              <label>
-                Slug
-                <input
-                  placeholder="verano"
-                  value={linkForm.slug}
-                  onChange={(event) =>
-                    setLinkForm((current) => ({ ...current, slug: event.target.value }))
-                  }
-                />
-              </label>
-            </div>
-            <div className="form-row">
-              <label>
-                Dominio
-                <select
-                  value={linkForm.domainId}
-                  onChange={(event) =>
-                    setLinkForm((current) => ({ ...current, domainId: event.target.value }))
-                  }
-                >
-                  <option value="base">Dominio base</option>
-                  {domains
-                    .filter((domain) => domain.status === "verified")
-                    .map((domain) => (
-                      <option key={domain.id} value={domain.id}>
-                        {domain.hostname}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <label>
-                Campana
-                <input
-                  placeholder="launch"
-                  value={linkForm.campaign}
-                  onChange={(event) =>
-                    setLinkForm((current) => ({ ...current, campaign: event.target.value }))
-                  }
-                />
-              </label>
-            </div>
+            <p>Pega cualquier URL larga para empezar.</p>
+          </div>
+          <div className="form-row">
+            <label>
+              Enlace corto
+              <input
+                placeholder="dayibiza.link/verano"
+                value={linkForm.slug}
+                onChange={(event) => setLinkForm((current) => ({ ...current, slug: event.target.value }))}
+              />
+            </label>
+            <label>
+              Dominio
+              <select
+                value={linkForm.domainId}
+                onChange={(event) => setLinkForm((current) => ({ ...current, domainId: event.target.value }))}
+              >
+                <option value="base">Dominio base</option>
+                {domains
+                  .filter((domain) => domain.status === "verified")
+                  .map((domain) => (
+                    <option key={domain.id} value={domain.id}>
+                      {domain.hostname}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          </div>
+          <label>
+            Nombre
+            <input
+              placeholder="ej. Mi campana"
+              value={linkForm.title}
+              onChange={(event) => setLinkForm((current) => ({ ...current, title: event.target.value }))}
+            />
+          </label>
+          <SegmentedLabel title="Seguimiento y analitica" />
+          <div className="compact-grid">
+            {(["utmSource", "utmMedium", "utmCampaign", "utmContent", "utmTerm"] as const).map((key) => (
+              <input
+                key={key}
+                placeholder={camelToUtm(key)}
+                value={linkForm[key]}
+                onChange={(event) => setLinkForm((current) => ({ ...current, [key]: event.target.value }))}
+              />
+            ))}
+          </div>
+          <div className="form-row">
+            <label>
+              Campana
+              <input
+                placeholder="launch"
+                value={linkForm.campaign}
+                onChange={(event) => setLinkForm((current) => ({ ...current, campaign: event.target.value }))}
+              />
+            </label>
             <label>
               Tags
               <input
-                placeholder="ads, newsletter, producto"
+                placeholder="ads, newsletter"
                 value={linkForm.tags}
                 onChange={(event) => setLinkForm((current) => ({ ...current, tags: event.target.value }))}
               />
             </label>
-            <div className="compact-grid">
-              <input
-                placeholder="utm_source"
-                value={linkForm.utmSource}
-                onChange={(event) => setLinkForm((current) => ({ ...current, utmSource: event.target.value }))}
-              />
-              <input
-                placeholder="utm_medium"
-                value={linkForm.utmMedium}
-                onChange={(event) => setLinkForm((current) => ({ ...current, utmMedium: event.target.value }))}
-              />
-              <input
-                placeholder="utm_campaign"
-                value={linkForm.utmCampaign}
-                onChange={(event) =>
-                  setLinkForm((current) => ({ ...current, utmCampaign: event.target.value }))
-                }
-              />
-              <input
-                placeholder="utm_content"
-                value={linkForm.utmContent}
-                onChange={(event) =>
-                  setLinkForm((current) => ({ ...current, utmContent: event.target.value }))
-                }
-              />
-              <input
-                placeholder="utm_term"
-                value={linkForm.utmTerm}
-                onChange={(event) => setLinkForm((current) => ({ ...current, utmTerm: event.target.value }))}
-              />
-            </div>
-            <div className="form-row">
-              <label>
-                Expira
-                <input
-                  type="datetime-local"
-                  value={linkForm.expiresAt}
-                  onChange={(event) =>
-                    setLinkForm((current) => ({ ...current, expiresAt: event.target.value }))
-                  }
-                />
-              </label>
-              <label>
-                Limite clics
-                <input
-                  min="1"
-                  type="number"
-                  placeholder="500"
-                  value={linkForm.clickLimit}
-                  onChange={(event) =>
-                    setLinkForm((current) => ({ ...current, clickLimit: event.target.value }))
-                  }
-                />
-              </label>
-            </div>
+          </div>
+          <SegmentedLabel title="Acceso y expiracion" />
+          <div className="form-row">
             <label>
-              URL fallback
+              Expira
               <input
-                placeholder="https://ejemplo.com/cerrado"
-                value={linkForm.fallbackUrl}
-                onChange={(event) =>
-                  setLinkForm((current) => ({ ...current, fallbackUrl: event.target.value }))
-                }
+                type="datetime-local"
+                value={linkForm.expiresAt}
+                onChange={(event) => setLinkForm((current) => ({ ...current, expiresAt: event.target.value }))}
               />
             </label>
-            <button className="primary-button" disabled={busy === "create-link"}>
-              {busy === "create-link" ? <Loader2 className="spin" size={18} /> : <Plus size={18} />}
-              Crear link
-            </button>
-          </form>
-        </section>
-
-        <section className="panel domains-panel">
-          <div className="panel-title">
-            <h2>Dominios</h2>
-            <Globe2 size={18} />
+            <label>
+              Limite clics
+              <input
+                min="1"
+                type="number"
+                placeholder="500"
+                value={linkForm.clickLimit}
+                onChange={(event) => setLinkForm((current) => ({ ...current, clickLimit: event.target.value }))}
+              />
+            </label>
           </div>
-          <form className="domain-form" onSubmit={addDomain}>
+          <label>
+            URL fallback
+            <input
+              placeholder="https://ejemplo.com/cerrado"
+              value={linkForm.fallbackUrl}
+              onChange={(event) => setLinkForm((current) => ({ ...current, fallbackUrl: event.target.value }))}
+            />
+          </label>
+          <button className="primary-button" disabled={busy === "create-link"}>
+            {busy === "create-link" ? <Loader2 className="spin" size={18} /> : <Plus size={18} />}
+            Guardar enlace
+          </button>
+        </form>
+      </section>
+      <aside className="preview-rail">
+        <div className="qr-placeholder">
+          <QrCode size={56} />
+          <span>El QR aparecera al guardar</span>
+        </div>
+        <div className="preview-box">
+          <ExternalLink size={36} />
+          <span>La vista previa del destino aparecera aqui</span>
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+function LinksView({
+  busy,
+  clickEvents,
+  domains,
+  filteredLinks,
+  query,
+  setQuery,
+  onCopy,
+  onDelete,
+  onUpdate
+}: {
+  busy: string | null;
+  clickEvents: ClickEvent[];
+  domains: Domain[];
+  filteredLinks: ShortLink[];
+  query: string;
+  setQuery: (value: string) => void;
+  onCopy: (link: ShortLink) => void;
+  onDelete: (id: string) => void;
+  onUpdate: (id: string, input: LinkUpdateInput) => Promise<void>;
+}) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  return (
+    <section className="dashboard-card">
+      <div className="table-toolbar">
+        <div className="button-row">
+          <button className="ghost-action" type="button">Columns</button>
+          <button className="ghost-action" type="button">
+            <Download size={16} />
+            Exportar
+          </button>
+        </div>
+        <label className="search-field">
+          <Search size={16} />
+          <input placeholder="Buscar..." value={query} onChange={(event) => setQuery(event.target.value)} />
+        </label>
+      </div>
+      <div className="link-table">
+        <div className="link-table-head">
+          <span>Nombre</span>
+          <span>Hoy</span>
+          <span>Total</span>
+          <span>Enlace</span>
+          <span />
+        </div>
+        {filteredLinks.length === 0 ? (
+          <EmptyState text="Sin resultados" />
+        ) : (
+          filteredLinks.map((link) => (
+            <div key={link.id}>
+              <button className="link-row" type="button" onClick={() => setExpandedId(expandedId === link.id ? null : link.id)}>
+                <span className="link-name">
+                  <span className="favicon-dot">{new URL(link.targetUrl).hostname.slice(0, 1).toUpperCase()}</span>
+                  <strong>{link.title}</strong>
+                </span>
+                <span>{clicksToday(clickEvents, link.id)}</span>
+                <span>{link.clicks}</span>
+                <span className="short-url">{buildShortUrl(link, domains)}</span>
+                <span className="row-actions">
+                  <Edit3 size={15} />
+                </span>
+              </button>
+              {expandedId === link.id ? (
+                <LinkItem
+                  busy={busy}
+                  domains={domains}
+                  events={clickEvents.filter((event) => event.linkId === link.id)}
+                  link={link}
+                  onCopy={() => onCopy(link)}
+                  onDelete={() => onDelete(link.id)}
+                  onUpdate={(input) => onUpdate(link.id, input)}
+                />
+              ) : null}
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
+function TrafficView({
+  clickEvents,
+  links,
+  stats
+}: {
+  clickEvents: ClickEvent[];
+  links: ShortLink[];
+  stats: { clicks: number; uniqueClicks: number };
+}) {
+  const bars = lastNDays(clickEvents, 14);
+  const max = Math.max(1, ...bars.map((bar) => bar.count));
+  const topLinks = links.toSorted((a, b) => b.clicks - a.clicks).slice(0, 6);
+
+  return (
+    <section className="traffic-view">
+      <div className="traffic-hero">
+        <div>
+          <strong>{stats.clicks}</strong>
+          <h2>Total de clics</h2>
+          <p>{stats.uniqueClicks} clics unicos registrados</p>
+        </div>
+        <div className="chart-bars">
+          {bars.map((bar) => (
+            <span key={bar.label} title={`${bar.label}: ${bar.count}`}>
+              <i style={{ height: `${Math.max(8, (bar.count / max) * 100)}%` }} />
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="dashboard-card">
+        <div className="link-table-head traffic-head">
+          <span>Destino</span>
+          <span>Clics</span>
+          <span>% Clics</span>
+        </div>
+        {topLinks.map((link) => (
+          <div className="traffic-row" key={link.id}>
+            <span>{link.targetUrl}</span>
+            <strong>{link.clicks}</strong>
+            <em>{stats.clicks ? Math.round((link.clicks / stats.clicks) * 100) : 0}%</em>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function UsersView({ currentUser, users }: { currentUser: PublicUser; users: PublicUser[] }) {
+  return (
+    <section className="dashboard-card">
+      <div className="section-heading">
+        <div>
+          <h2>Usuarios en {currentUser.workspaceName}</h2>
+          <p>Todos los usuarios tienen acceso al workspace en esta V3 inicial.</p>
+        </div>
+        <button className="primary-action" type="button">
+          <UserPlus size={18} />
+          Invitar usuario
+        </button>
+      </div>
+      <div className="users-table">
+        <div className="users-head">
+          <span>Correo electronico</span>
+          <span>Rol</span>
+          <span>Ultima actividad</span>
+        </div>
+        {users.map((user) => (
+          <div className="users-row" key={user.id}>
+            <span className="user-cell">
+              <i>{initials(user.name)}</i>
+              <strong>{user.email}</strong>
+            </span>
+            <span>{user.role}</span>
+            <span>{user.lastLoginAt ? formatDate(user.lastLoginAt) : "-"}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function DomainsView({
+  busy,
+  domainForm,
+  domains,
+  setDomainForm,
+  onAddDomain,
+  onDeleteDomain,
+  onForceVerify,
+  onVerify
+}: {
+  busy: string | null;
+  domainForm: { hostname: string };
+  domains: Domain[];
+  setDomainForm: (value: { hostname: string }) => void;
+  onAddDomain: (event: FormEvent<HTMLFormElement>) => void;
+  onDeleteDomain: (id: string) => void;
+  onForceVerify: (id: string) => void;
+  onVerify: (id: string) => void;
+}) {
+  return (
+    <section className="domains-view">
+      <div className="domain-hero">
+        <h2>Registra o conecta un dominio personalizado</h2>
+        <p>Reemplaza el dominio predeterminado con tu propio dominio corto.</p>
+        <div className="domain-demo">
+          <span>link-app/abc</span>
+          <strong>dayibiza.link/blog</strong>
+        </div>
+      </div>
+      <div className="domain-panels">
+        <form className="domain-connect-card" onSubmit={onAddDomain}>
+          <Globe2 size={24} />
+          <h3>Conecta un dominio que ya poseas</h3>
+          <div className="domain-form">
             <input
               required
               placeholder="go.tumarca.com"
@@ -451,73 +781,44 @@ export function Dashboard({ initialSnapshot }: { initialSnapshot: Snapshot }) {
             <button className="icon-button filled" disabled={busy === "create-domain"} title="Anadir dominio">
               {busy === "create-domain" ? <Loader2 className="spin" size={18} /> : <Plus size={18} />}
             </button>
-          </form>
-          <div className="domain-list">
-            {domains.length === 0 ? (
-              <EmptyState text="Sin dominios todavia" />
-            ) : (
-              domains.map((domain) => (
-                <DomainItem
-                  key={domain.id}
-                  domain={domain}
-                  busy={busy}
-                  onVerify={() => verifyDomain(domain.id)}
-                  onForceVerify={() => verifyDomain(domain.id, true)}
-                  onDelete={() => deleteDomain(domain.id)}
-                />
-              ))
-            )}
           </div>
-        </section>
-
-        <section className="panel links-panel">
-          <div className="panel-title toolbar-title">
-            <div>
-              <h2>Links</h2>
-              <p>{filteredLinks.length} visibles</p>
-            </div>
-            <label className="search-field">
-              <Filter size={16} />
-              <input
-                placeholder="Buscar"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
+        </form>
+        <div className="domain-list">
+          {domains.length === 0 ? (
+            <EmptyState text="Sin dominios todavia" />
+          ) : (
+            domains.map((domain) => (
+              <DomainItem
+                key={domain.id}
+                domain={domain}
+                busy={busy}
+                onVerify={() => onVerify(domain.id)}
+                onForceVerify={() => onForceVerify(domain.id)}
+                onDelete={() => onDeleteDomain(domain.id)}
               />
-            </label>
-          </div>
-          <div className="link-list">
-            {filteredLinks.length === 0 ? (
-              <EmptyState text="Sin resultados" />
-            ) : (
-              filteredLinks.map((link) => (
-                <LinkItem
-                  key={link.id}
-                  link={link}
-                  domains={domains}
-                  events={clickEvents.filter((event) => event.linkId === link.id)}
-                  busy={busy}
-                  onCopy={() => copyShortUrl(link)}
-                  onDelete={() => deleteLink(link.id)}
-                  onUpdate={(input) => updateLink(link.id, input)}
-                />
-              ))
-            )}
-          </div>
-        </section>
+            ))
+          )}
+        </div>
       </div>
-    </main>
+    </section>
   );
 }
 
-function Metric({
-  icon,
-  label,
-  value
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-}) {
+function PlaceholderView({ icon, title }: { icon: React.ReactNode; title: string }) {
+  return (
+    <section className="placeholder-view">
+      {icon}
+      <h2>{title}</h2>
+      <p>Modulo reservado para la siguiente iteracion de V3.</p>
+    </section>
+  );
+}
+
+function SegmentedLabel({ title }: { title: string }) {
+  return <h3 className="form-section-label">{title}</h3>;
+}
+
+function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
     <article className="metric">
       <span>{icon}</span>
@@ -572,11 +873,7 @@ function DomainItem({
           </>
         )}
         <button className="icon-button subtle" type="button" onClick={onDelete} title="Borrar dominio">
-          {busy === `delete-domain-${domain.id}` ? (
-            <Loader2 className="spin" size={16} />
-          ) : (
-            <Trash2 size={16} />
-          )}
+          {busy === `delete-domain-${domain.id}` ? <Loader2 className="spin" size={16} /> : <Trash2 size={16} />}
         </button>
       </div>
     </article>
@@ -944,4 +1241,58 @@ function isExpired(link: ShortLink) {
   const dateExpired = link.expiresAt ? new Date(link.expiresAt).getTime() <= Date.now() : false;
   const clickExpired = link.clickLimit ? link.clicks >= link.clickLimit : false;
   return dateExpired || clickExpired;
+}
+
+function viewTitle(view: View) {
+  return {
+    create: "Crear nuevo enlace",
+    links: "Todos los enlaces de seguimiento",
+    traffic: "Trafico",
+    users: "Usuarios",
+    domains: "Dominios",
+    imports: "Importacion masiva",
+    settings: "Configuracion"
+  }[view];
+}
+
+function viewSubtitle(view: View) {
+  return {
+    create: "Configura destino, UTMs, expiracion y QR.",
+    links: "Gestiona tus enlaces, clics y URLs cortas.",
+    traffic: "Analiza clics y rendimiento por destino.",
+    users: "Gestiona las personas del workspace.",
+    domains: "Conecta dominios personalizados.",
+    imports: "Carga enlaces en lote.",
+    settings: "Ajustes del workspace y cuenta."
+  }[view];
+}
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function camelToUtm(value: string) {
+  return value.replace("utm", "utm_").replace(/[A-Z]/g, (letter) => letter.toLowerCase());
+}
+
+function clicksToday(events: ClickEvent[], linkId: string) {
+  const today = new Date().toISOString().slice(0, 10);
+  return events.filter((event) => event.linkId === linkId && event.createdAt.startsWith(today)).length;
+}
+
+function lastNDays(events: ClickEvent[], days: number) {
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (days - 1 - index));
+    const key = date.toISOString().slice(0, 10);
+    return {
+      label: key.slice(5),
+      count: events.filter((event) => event.createdAt.startsWith(key)).length
+    };
+  });
 }

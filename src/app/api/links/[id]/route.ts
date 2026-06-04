@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireCurrentUser } from "@/lib/auth";
 import { deleteShortLink, updateShortLink } from "@/lib/store";
 import { updateLinkSchema } from "@/lib/validators";
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    await requireCurrentUser();
     const { id } = await context.params;
     const body = await request.json();
     const payload = updateLinkSchema.parse(body);
@@ -20,6 +22,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
 export async function DELETE(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    await requireCurrentUser();
     const { id } = await context.params;
     await deleteShortLink(id);
     return NextResponse.json({ ok: true });

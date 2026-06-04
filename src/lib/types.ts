@@ -41,8 +41,29 @@ export type ClickEvent = {
   ipHash: string;
 };
 
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  passwordHash: string;
+  passwordSalt: string;
+  role: "owner" | "member";
+  workspaceName: string;
+  createdAt: string;
+  lastLoginAt: string | null;
+};
+
+export type Session = {
+  id: string;
+  userId: string;
+  createdAt: string;
+  expiresAt: string;
+};
+
 export type Store = {
   domains: Domain[];
   links: ShortLink[];
   clickEvents: ClickEvent[];
+  users: User[];
+  sessions: Session[];
 };

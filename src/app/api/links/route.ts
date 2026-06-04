@@ -1,14 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireCurrentUser } from "@/lib/auth";
 import { createShortLink, getSnapshot } from "@/lib/store";
 import { createLinkSchema } from "@/lib/validators";
 
 export async function GET() {
+  try {
+    await requireCurrentUser();
+  } catch {
+    return NextResponse.json({ message: "No autenticado." }, { status: 401 });
+  }
+
   const snapshot = await getSnapshot();
   return NextResponse.json(snapshot.links);
 }
 
 export async function POST(request: NextRequest) {
   try {
+    await requireCurrentUser();
     const body = await request.json();
     const payload = createLinkSchema.parse(body);
     const link = await createShortLink({

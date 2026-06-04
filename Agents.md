@@ -97,14 +97,22 @@ git push origin v1-link-up
 ## Estructura Importante
 
 - `src/app/page.tsx`: entrada del panel web. Forzada como dinamica con `dynamic = "force-dynamic"` para leer datos actuales.
+- `src/app/login/page.tsx`: pantalla de acceso.
+- `src/app/register/page.tsx`: pantalla de registro.
+- `src/components/auth-form.tsx`: formulario compartido de login/registro.
 - `src/components/dashboard.tsx`: interfaz principal de links, dominios, copiado y acciones.
 - `src/app/[slug]/route.ts`: redireccion dinamica de enlaces cortos.
+- `src/app/api/auth/login/route.ts`: crea sesion de usuario.
+- `src/app/api/auth/logout/route.ts`: cierra sesion actual.
+- `src/app/api/auth/register/route.ts`: registra usuario y crea sesion.
 - `src/app/api/snapshot/route.ts`: snapshot de links y dominios.
+- `src/app/api/users/route.ts`: lista usuarios del workspace.
 - `src/app/api/links/route.ts`: listar y crear links.
 - `src/app/api/links/[id]/route.ts`: actualizar o borrar links.
 - `src/app/api/domains/route.ts`: listar y crear dominios.
 - `src/app/api/domains/[id]/route.ts`: borrar dominios.
 - `src/app/api/domains/[id]/verify/route.ts`: verificar dominios.
+- `src/lib/auth.ts`: registro, login, sesiones, cookie HTTP-only y usuario actual.
 - `src/lib/store.ts`: capa de persistencia. Usa Cloudflare KV si existe binding; si no, JSON local.
 - `src/lib/validators.ts`: esquemas Zod.
 - `src/lib/config.ts`: nombre, URL base y target CNAME.
@@ -124,6 +132,11 @@ Modelo:
 
 - `domains`: dominios personalizados.
 - `links`: enlaces cortos.
+- `clickEvents`: eventos de clic para analitica.
+- `users`: usuarios registrados.
+- `sessions`: sesiones activas con expiracion.
+
+Desde V3, las APIs del panel requieren sesion. La ruta publica `/:slug` queda sin autenticacion para que los enlaces cortos sigan redirigiendo a cualquier visitante.
 
 En desarrollo local, si no hay contexto Cloudflare, se usa:
 
@@ -238,6 +251,44 @@ Validacion:
 - Smoke test produccion: crear link V2, comprobar redireccion `307` y borrar link de prueba.
 - Pendiente externo: DNS publico de `dayibiza.link` todavia puede tardar en resolver tras el registro.
 
+### v3-link-up local
+
+Estado: version local en desarrollo el 2026-06-04. No desplegada todavia en Cloudflare.
+
+Contenido:
+
+- Redisenio del panel hacia un dashboard tipo Linkly/Bitly.
+- Sidebar fija con workspace, navegacion principal, uso y logout.
+- Vistas separadas: crear enlace, enlaces, trafico, usuarios, dominios, importacion masiva y configuracion.
+- Vista de crear enlace con panel de destino, slug/dominio, nombre interno, UTMs, campana, tags, expiracion, limite de clics, fallback y previsualizacion lateral.
+- Vista de enlaces con tabla densa, buscador, exportacion visual y acciones existentes al expandir cada fila.
+- Vista de trafico con resumen de clics, clics unicos, grafico simple por dias y tabla de destinos.
+- Vista de usuarios con listado del workspace.
+- Vista de dominios inspirada en el flujo de conectar dominio propio.
+- Registro y login con cookie HTTP-only `link_app_session`.
+- Primer usuario registrado queda como `owner`; los siguientes quedan como `member`.
+- APIs del dashboard protegidas por sesion.
+- Los slugs publicos siguen funcionando sin login.
+
+Validacion local:
+
+- `npm run typecheck`
+- `npm run build`
+- `http://localhost:3000/` redirige a `/login` sin sesion.
+- Login local probado con usuario de desarrollo.
+- Crear enlace por API autenticada probado correctamente.
+- `/api/snapshot` devuelve `401` sin sesion.
+- Slug publico probado con redireccion `307` sin sesion.
+- Captura visual del navegador integrado intentada, pero el mecanismo de captura quedo bloqueado en esta sesion; se valido navegacion por DOM de las vistas principales.
+
+Pendiente antes de desplegar V3:
+
+- Decidir si el primer registro en produccion queda abierto o si se bloquea tras crear el owner.
+- Separar datos por usuario/workspace antes de multiusuario real.
+- Implementar invitaciones reales desde la vista de usuarios.
+- Revisar UX responsive en navegador con captura estable.
+- Ejecutar `npm run deploy` solo cuando el usuario pida subir V3 a Cloudflare.
+
 ## Reglas Para Futuras Sesiones
 
 Antes de cambiar codigo:
@@ -271,9 +322,9 @@ npx opennextjs-cloudflare build
 - Configurar dominio real de produccion.
 - Decidir dominio corto comercial.
 - Cambiar la verificacion DNS en Cloudflare a DNS-over-HTTPS.
-- Anadir autenticacion de usuarios.
 - Separar datos por usuario/equipo.
-- Mejorar analitica: pais, dispositivo, referer, series temporales.
+- Implementar invitaciones y permisos reales.
+- Mejorar analitica: series temporales avanzadas y exportaciones reales.
 - Anadir pagina de error publica para slug no encontrado.
 - Anadir favicon/iconos.
 - Revisar vulnerabilidades moderadas reportadas por `npm audit` cuando Next/PostCSS publiquen una ruta de actualizacion sin downgrade rompedor.
