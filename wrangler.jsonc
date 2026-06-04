@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": ".open-next/worker.js",
+  "name": "link-app",
+  "compatibility_date": "2026-06-04",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "link-app"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "LINK_APP_STORE",
+      "id": "da149d04556f4fd99d148aaf04b41aea"
+    }
+  ]
+}

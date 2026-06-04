@@ -5,11 +5,16 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@opennextjs/cloudflare": "^1.19.11",
     "lucide-react": "^0.468.0",
     "nanoid": "^5.0.8",
     "next": "^16.2.7",
@@ -21,6 +26,7 @@
     "@types/node": "^22.10.1",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.1",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "wrangler": "^4.98.0"
   }
 }

@@ -1,10 +1,13 @@
 .next
+.open-next
+.wrangler
 node_modules
 dist
 build
 coverage
 .env
 .env.local
+.dev.vars
 data/*.json
 *.log
 tsconfig.tsbuildinfo

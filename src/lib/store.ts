@@ -1,37 +1,74 @@
-import { promises as fs } from "fs";
-import path from "path";
 import { customAlphabet, nanoid } from "nanoid";
 import { CNAME_TARGET } from "./config";
 import type { Domain, ShortLink, Store } from "./types";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const STORE_PATH = path.join(DATA_DIR, "store.json");
+const STORE_KEY = "link-app:store";
 const slugId = customAlphabet("23456789abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ", 7);
+type StoreKv = {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string): Promise<void>;
+};
 
 const emptyStore = (): Store => ({
   domains: [],
   links: []
 });
 
-async function ensureStore() {
-  await fs.mkdir(DATA_DIR, { recursive: true });
+async function getCloudflareKv(): Promise<StoreKv | null> {
+  try {
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    const context = getCloudflareContext();
+    const env = context.env as Record<string, unknown>;
+    return (env.LINK_APP_STORE as StoreKv | undefined) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function getStorePath() {
+  const [{ promises: fs }, path] = await Promise.all([import("fs"), import("path")]);
+  const dataDir = path.join(process.cwd(), "data");
+  const storePath = path.join(dataDir, "store.json");
+  return { fs, dataDir, storePath };
+}
+
+async function ensureFileStore() {
+  const { fs, dataDir, storePath } = await getStorePath();
+  await fs.mkdir(dataDir, { recursive: true });
 
   try {
-    await fs.access(STORE_PATH);
+    await fs.access(storePath);
   } catch {
-    await fs.writeFile(STORE_PATH, JSON.stringify(emptyStore(), null, 2), "utf8");
+    await fs.writeFile(storePath, JSON.stringify(emptyStore(), null, 2), "utf8");
   }
 }
 
 export async function readStore(): Promise<Store> {
-  await ensureStore();
-  const raw = await fs.readFile(STORE_PATH, "utf8");
+  const kv = await getCloudflareKv();
+
+  if (kv) {
+    const raw = await kv.get(STORE_KEY);
+    return raw ? (JSON.parse(raw) as Store) : emptyStore();
+  }
+
+  await ensureFileStore();
+  const { fs, storePath } = await getStorePath();
+  const raw = await fs.readFile(storePath, "utf8");
   return JSON.parse(raw) as Store;
 }
 
 export async function writeStore(store: Store) {
-  await ensureStore();
-  await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2), "utf8");
+  const kv = await getCloudflareKv();
+  const serialized = JSON.stringify(store, null, 2);
+
+  if (kv) {
+    await kv.put(STORE_KEY, serialized);
+    return;
+  }
+
+  await ensureFileStore();
+  const { fs, storePath } = await getStorePath();
+  await fs.writeFile(storePath, serialized, "utf8");
 }
 
 export async function getSnapshot() {
@@ -74,6 +111,10 @@ export async function verifyDomain(domainId: string, force = false) {
   }
 
   if (!force) {
+    if (await getCloudflareKv()) {
+      throw new Error("La verificacion DNS automatica no esta disponible en Cloudflare todavia. Usa Dev para marcarlo manualmente.");
+    }
+
     const { resolveCname } = await import("dns/promises");
     const records = await resolveCname(domain.hostname);
     const isValid = records.some((record) =>
