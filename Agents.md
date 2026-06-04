@@ -34,7 +34,7 @@ Objetivo del MVP:
 - HTTPS: activo y verificado en `dayibiza.link`, `www.dayibiza.link` y `link-app.comunikoo.workers.dev`.
 - Seguridad HTTPS: `http://dayibiza.link/*` redirige a `https://dayibiza.link/*` con `308`; las respuestas HTTPS incluyen `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`.
 - Certificado verificado el 2026-06-04: `dayibiza.link`, TLSv1.3, issuer `Google Trust Services`, HTTP/2.
-- Version Cloudflare actual: `29f31ec3-501e-495a-9af8-b81ae4ca41c1`
+- Version Cloudflare actual: `977b0909-ea19-4c87-a289-6038607ce92d`
 - Plataforma: Cloudflare Workers con OpenNext.
 - Motivo: la app usa Next.js full-stack con route handlers, redirecciones dinamicas y persistencia. Cloudflare Pages queda mejor para sitios estaticos; para esta app se usa Workers/OpenNext.
 - KV namespace: `LINK_APP_STORE`
@@ -274,7 +274,7 @@ Validacion:
 
 Estado: desplegada en Cloudflare el 2026-06-04.
 
-Cloudflare version id: `29f31ec3-501e-495a-9af8-b81ae4ca41c1`
+Cloudflare version id: `977b0909-ea19-4c87-a289-6038607ce92d`
 
 Contenido:
 
@@ -288,6 +288,7 @@ Contenido:
 - Vista Analytics tipo Bitly con filtros por periodo y link.
 - Modulos Analytics: KPIs, interacciones en el tiempo, links top, referentes, ubicacion, dispositivos, navegadores y campanas.
 - Modulo de ubicacion simplificado a tabla por pais con interacciones y porcentaje; se elimino la ilustracion de mapa porque no representaba geolocalizacion real.
+- Dashboard Analytics interactivo: KPIs, timeline, rankings, donut de dispositivos, links top y ubicaciones tienen hover/clic, resaltado, tooltips, panel de insight seleccionado y animaciones de entrada.
 - Exportacion CSV de eventos filtrados desde Analytics.
 - Seccion API Keys para generar y revocar claves de integracion.
 - Endpoint remoto `POST /api/v1/links` para crear enlaces desde MCP, n8n, CRMs u otros proyectos.

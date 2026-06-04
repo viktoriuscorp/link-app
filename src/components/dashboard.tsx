@@ -47,6 +47,7 @@ type Toast = { tone: "success" | "error"; text: string } | null;
 type View = "create" | "links" | "analytics" | "apiKeys" | "users" | "domains" | "imports" | "settings";
 type LinkUpdateInput = Partial<Omit<ShortLink, "tags">> & { tags?: string };
 type AnalyticsRow = { count: number; label: string; percent: number };
+type AnalyticsInsight = { detail: string; label: string; source: string; value: string } | null;
 type UserFormState = { name: string; email: string; password: string; role: PublicUser["role"] };
 
 const ANALYTICS_COLORS = ["#4faeba", "#b8f0f5", "#3151c9", "#b8c8ff", "#f08b27", "#87d4c9"];
@@ -824,6 +825,7 @@ function AnalyticsView({
 }) {
   const [range, setRange] = useState("30");
   const [selectedLinkId, setSelectedLinkId] = useState("all");
+  const [activeInsight, setActiveInsight] = useState<AnalyticsInsight>(null);
   const filteredEvents = useMemo(
     () => filterAnalyticsEvents(clickEvents, range, selectedLinkId),
     [clickEvents, range, selectedLinkId]
@@ -883,43 +885,178 @@ function AnalyticsView({
       </div>
 
       <div className="analytics-kpis">
-        <KpiCard label="Interacciones filtradas" value={total} detail={`${stats.clicks} clics historicos`} />
-        <KpiCard label="Visitantes unicos" value={unique} detail={`${stats.uniqueClicks} unicos historicos`} />
-        <KpiCard label="Mejor dia" value={bestDay?.count ?? 0} detail={bestDay ? bestDay.label : "Sin datos"} />
+        <KpiCard
+          label="Interacciones filtradas"
+          value={total}
+          detail={`${stats.clicks} clics historicos`}
+          onInspect={() =>
+            setActiveInsight({
+              source: "Resumen",
+              label: "Interacciones filtradas",
+              value: String(total),
+              detail: "Total de eventos dentro de los filtros actuales."
+            })
+          }
+        />
+        <KpiCard
+          label="Visitantes unicos"
+          value={unique}
+          detail={`${stats.uniqueClicks} unicos historicos`}
+          onInspect={() =>
+            setActiveInsight({
+              source: "Resumen",
+              label: "Visitantes unicos",
+              value: String(unique),
+              detail: "Calculado por hash de IP dentro del periodo seleccionado."
+            })
+          }
+        />
+        <KpiCard
+          label="Mejor dia"
+          value={bestDay?.count ?? 0}
+          detail={bestDay ? bestDay.label : "Sin datos"}
+          onInspect={() =>
+            setActiveInsight({
+              source: "Resumen",
+              label: bestDay ? `Mejor dia: ${bestDay.label}` : "Mejor dia",
+              value: String(bestDay?.count ?? 0),
+              detail: "Dia con mas interacciones en el grafico actual."
+            })
+          }
+        />
         <KpiCard
           label="Trafico directo"
           value={`${total ? Math.round((directCount / total) * 100) : 0}%`}
           detail={`${directCount} interacciones`}
+          onInspect={() =>
+            setActiveInsight({
+              source: "Resumen",
+              label: "Trafico directo",
+              value: `${total ? Math.round((directCount / total) * 100) : 0}%`,
+              detail: `${directCount} interacciones sin referente detectado.`
+            })
+          }
         />
+      </div>
+
+      <div className="analytics-insight" aria-live="polite">
+        <div>
+          <small>{activeInsight ? activeInsight.source : "Panel interactivo"}</small>
+          <strong>{activeInsight ? activeInsight.label : "Selecciona cualquier grafico para ver el detalle"}</strong>
+          <span>{activeInsight ? activeInsight.detail : "Puntos, barras, filas y leyendas responden al hover y al clic."}</span>
+        </div>
+        <em>{activeInsight ? activeInsight.value : `${total} eventos`}</em>
+        {activeInsight ? (
+          <button className="icon-button subtle" type="button" title="Limpiar seleccion" onClick={() => setActiveInsight(null)}>
+            <X size={16} />
+          </button>
+        ) : null}
       </div>
 
       <div className="analytics-grid">
         <AnalyticsCard className="analytics-card-wide" title="Total de interacciones a lo largo del tiempo">
-          <TimelineChart data={timeline} />
+          <TimelineChart
+            data={timeline}
+            onInspect={(item) =>
+              setActiveInsight({
+                source: "Tiempo",
+                label: item.label,
+                value: String(item.count),
+                detail: "Interacciones registradas en este dia."
+              })
+            }
+          />
         </AnalyticsCard>
 
         <AnalyticsCard title="Links con mas interacciones">
-          <TopLinksPanel items={topLinks} total={total} />
+          <TopLinksPanel
+            items={topLinks}
+            total={total}
+            onInspect={(item) =>
+              setActiveInsight({
+                source: "Links",
+                label: item.link.title,
+                value: String(item.count),
+                detail: `${total ? Math.round((item.count / total) * 100) : 0}% de las interacciones filtradas.`
+              })
+            }
+          />
         </AnalyticsCard>
 
         <AnalyticsCard title="Total de interacciones por referente">
-          <BarRanking rows={topReferrers} emptyText="Aun no hay referentes." />
+          <BarRanking
+            rows={topReferrers}
+            emptyText="Aun no hay referentes."
+            onInspect={(row) =>
+              setActiveInsight({
+                source: "Referente",
+                label: row.label,
+                value: String(row.count),
+                detail: `${row.percent}% de las interacciones filtradas.`
+              })
+            }
+          />
         </AnalyticsCard>
 
         <AnalyticsCard title="Total de interacciones por dispositivo">
-          <DonutBreakdown rows={topDevices} total={total} centerLabel={String(total)} />
+          <DonutBreakdown
+            rows={topDevices}
+            total={total}
+            centerLabel={String(total)}
+            onInspect={(row) =>
+              setActiveInsight({
+                source: "Dispositivo",
+                label: row.label,
+                value: String(row.count),
+                detail: `${row.percent}% de las interacciones filtradas.`
+              })
+            }
+          />
         </AnalyticsCard>
 
         <AnalyticsCard className="analytics-card-wide" title="Total de interacciones por ubicacion">
-          <LocationPanel rows={topCountries} total={total} />
+          <LocationPanel
+            rows={topCountries}
+            total={total}
+            onInspect={(row) =>
+              setActiveInsight({
+                source: "Ubicacion",
+                label: row.label,
+                value: String(row.count),
+                detail: `${row.percent}% de las interacciones filtradas.`
+              })
+            }
+          />
         </AnalyticsCard>
 
         <AnalyticsCard title="Navegadores">
-          <BarRanking rows={topBrowsers} emptyText="Aun no hay navegadores." />
+          <BarRanking
+            rows={topBrowsers}
+            emptyText="Aun no hay navegadores."
+            onInspect={(row) =>
+              setActiveInsight({
+                source: "Navegador",
+                label: row.label,
+                value: String(row.count),
+                detail: `${row.percent}% de las interacciones filtradas.`
+              })
+            }
+          />
         </AnalyticsCard>
 
         <AnalyticsCard title="Campanas">
-          <BarRanking rows={topCampaigns} emptyText="Aun no hay campanas." />
+          <BarRanking
+            rows={topCampaigns}
+            emptyText="Aun no hay campanas."
+            onInspect={(row) =>
+              setActiveInsight({
+                source: "Campana",
+                label: row.label,
+                value: String(row.count),
+                detail: `${row.percent}% de las interacciones filtradas.`
+              })
+            }
+          />
         </AnalyticsCard>
       </div>
     </section>
@@ -956,21 +1093,39 @@ function AnalyticsCard({
   );
 }
 
-function KpiCard({ detail, label, value }: { detail: string; label: string; value: number | string }) {
+function KpiCard({
+  detail,
+  label,
+  onInspect,
+  value
+}: {
+  detail: string;
+  label: string;
+  onInspect: () => void;
+  value: number | string;
+}) {
   return (
-    <article className="analytics-kpi">
+    <button className="analytics-kpi" type="button" onClick={onInspect}>
       <small>{label}</small>
       <strong>{value}</strong>
       <span>{detail}</span>
-    </article>
+    </button>
   );
 }
 
-function TimelineChart({ data }: { data: { count: number; label: string }[] }) {
+function TimelineChart({
+  data,
+  onInspect
+}: {
+  data: { count: number; label: string }[];
+  onInspect: (item: { count: number; label: string }) => void;
+}) {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const width = 720;
   const height = 260;
   const padding = 34;
   const max = Math.max(1, ...data.map((item) => item.count));
+  const activeItem = activeIndex === null ? null : data[activeIndex];
   const points = data
     .map((item, index) => {
       const x = padding + (index / Math.max(1, data.length - 1)) * (width - padding * 2);
@@ -981,6 +1136,15 @@ function TimelineChart({ data }: { data: { count: number; label: string }[] }) {
 
   return (
     <div className="timeline-chart">
+      {activeItem ? (
+        <div
+          className="chart-tooltip"
+          style={{ left: `${(activeIndex! / Math.max(1, data.length - 1)) * 100}%` }}
+        >
+          <strong>{activeItem.count}</strong>
+          <span>{activeItem.label}</span>
+        </div>
+      ) : null}
       <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Interacciones a lo largo del tiempo">
         {[0, 1, 2].map((line) => {
           const y = padding + line * ((height - padding * 2) / 2);
@@ -990,7 +1154,30 @@ function TimelineChart({ data }: { data: { count: number; label: string }[] }) {
         {data.map((item, index) => {
           const x = padding + (index / Math.max(1, data.length - 1)) * (width - padding * 2);
           const y = height - padding - (item.count / max) * (height - padding * 2);
-          return <circle key={`${item.label}-${index}`} cx={x} cy={y} r="4" />;
+          return (
+            <circle
+              className={activeIndex === index ? "active" : ""}
+              key={`${item.label}-${index}`}
+              cx={x}
+              cy={y}
+              r="5"
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                setActiveIndex(index);
+                onInspect(item);
+              }}
+              onFocus={() => setActiveIndex(index)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onInspect(item);
+                }
+              }}
+              onMouseEnter={() => setActiveIndex(index)}
+              onMouseLeave={() => setActiveIndex(null)}
+            />
+          );
         })}
       </svg>
       <div className="timeline-labels">
@@ -1004,8 +1191,17 @@ function TimelineChart({ data }: { data: { count: number; label: string }[] }) {
   );
 }
 
-function BarRanking({ emptyText, rows }: { emptyText: string; rows: AnalyticsRow[] }) {
+function BarRanking({
+  emptyText,
+  onInspect,
+  rows
+}: {
+  emptyText: string;
+  onInspect: (row: AnalyticsRow) => void;
+  rows: AnalyticsRow[];
+}) {
   const max = Math.max(1, ...rows.map((row) => row.count));
+  const [activeLabel, setActiveLabel] = useState<string | null>(null);
 
   if (!rows.length) {
     return <EmptyState text={emptyText} />;
@@ -1014,12 +1210,22 @@ function BarRanking({ emptyText, rows }: { emptyText: string; rows: AnalyticsRow
   return (
     <div className="bar-ranking">
       {rows.map((row) => (
-        <div className="bar-row" key={row.label}>
+        <button
+          className={`bar-row ${activeLabel === row.label ? "active" : ""}`}
+          key={row.label}
+          type="button"
+          onClick={() => {
+            setActiveLabel(row.label);
+            onInspect(row);
+          }}
+          onMouseEnter={() => setActiveLabel(row.label)}
+          onMouseLeave={() => setActiveLabel(null)}
+        >
           <span>{row.label}</span>
           <strong>{row.count}</strong>
           <em>{row.percent}%</em>
           <i style={{ width: `${Math.max(4, (row.count / max) * 100)}%` }} />
-        </div>
+        </button>
       ))}
     </div>
   );
@@ -1027,36 +1233,65 @@ function BarRanking({ emptyText, rows }: { emptyText: string; rows: AnalyticsRow
 
 function DonutBreakdown({
   centerLabel,
+  onInspect,
   rows,
   total
 }: {
   centerLabel: string;
+  onInspect: (row: AnalyticsRow) => void;
   rows: AnalyticsRow[];
   total: number;
 }) {
+  const [activeLabel, setActiveLabel] = useState(rows[0]?.label ?? "");
+
   if (!rows.length) {
     return <EmptyState text="Aun no hay datos de dispositivo." />;
   }
 
   return (
     <div className="donut-breakdown">
-      <div className="analytics-donut" style={{ background: donutGradient(rows, total) }}>
-        <span>{centerLabel}</span>
-      </div>
+      <button
+        className="analytics-donut"
+        style={{ background: donutGradient(rows, total) }}
+        type="button"
+        onClick={() => onInspect(rows.find((row) => row.label === activeLabel) ?? rows[0])}
+      >
+        <span>{rows.find((row) => row.label === activeLabel)?.count ?? centerLabel}</span>
+        <small>{activeLabel || "Total"}</small>
+      </button>
       <div className="donut-legend">
         {rows.map((row, index) => (
-          <span key={row.label}>
+          <button
+            className={activeLabel === row.label ? "active" : ""}
+            key={row.label}
+            type="button"
+            onClick={() => {
+              setActiveLabel(row.label);
+              onInspect(row);
+            }}
+            onMouseEnter={() => setActiveLabel(row.label)}
+          >
             <i style={{ background: ANALYTICS_COLORS[index % ANALYTICS_COLORS.length] }} />
             {row.label}
             <strong>{row.count}</strong>
-          </span>
+          </button>
         ))}
       </div>
     </div>
   );
 }
 
-function LocationPanel({ rows, total }: { rows: AnalyticsRow[]; total: number }) {
+function LocationPanel({
+  onInspect,
+  rows,
+  total
+}: {
+  onInspect: (row: AnalyticsRow) => void;
+  rows: AnalyticsRow[];
+  total: number;
+}) {
+  const [activeLabel, setActiveLabel] = useState<string | null>(null);
+
   if (!rows.length) {
     return <EmptyState text="Aun no hay ubicaciones registradas." />;
   }
@@ -1074,13 +1309,23 @@ function LocationPanel({ rows, total }: { rows: AnalyticsRow[]; total: number })
           <span aria-hidden="true" />
         </div>
         {rows.map((row, index) => (
-          <div key={row.label}>
+          <button
+            className={activeLabel === row.label ? "active" : ""}
+            key={row.label}
+            type="button"
+            onClick={() => {
+              setActiveLabel(row.label);
+              onInspect(row);
+            }}
+            onMouseEnter={() => setActiveLabel(row.label)}
+            onMouseLeave={() => setActiveLabel(null)}
+          >
             <strong>{index + 1}</strong>
             <span>{row.label}</span>
             <span>{row.count}</span>
             <span>{total ? row.percent : 0}%</span>
             <i style={{ width: `${Math.max(6, (row.count / max) * 100)}%` }} />
-          </div>
+          </button>
         ))}
       </div>
     </div>
@@ -1089,11 +1334,15 @@ function LocationPanel({ rows, total }: { rows: AnalyticsRow[]; total: number })
 
 function TopLinksPanel({
   items,
+  onInspect,
   total
 }: {
   items: { count: number; link: ShortLink }[];
+  onInspect: (item: { count: number; link: ShortLink }) => void;
   total: number;
 }) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+
   if (!items.length) {
     return <EmptyState text="Aun no hay interacciones en links." />;
   }
@@ -1101,14 +1350,24 @@ function TopLinksPanel({
   return (
     <div className="top-links-panel">
       {items.map(({ count, link }) => (
-        <div key={link.id}>
+        <button
+          className={activeId === link.id ? "active" : ""}
+          key={link.id}
+          type="button"
+          onClick={() => {
+            setActiveId(link.id);
+            onInspect({ count, link });
+          }}
+          onMouseEnter={() => setActiveId(link.id)}
+          onMouseLeave={() => setActiveId(null)}
+        >
           <span>
             <strong>{link.title}</strong>
             <small>/{link.slug}</small>
           </span>
           <em>{count}</em>
           <i style={{ width: `${total ? Math.max(4, (count / total) * 100) : 0}%` }} />
-        </div>
+        </button>
       ))}
     </div>
   );
