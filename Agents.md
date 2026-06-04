@@ -33,7 +33,7 @@ Objetivo del MVP:
 - HTTPS: activo y verificado en `dayibiza.link`, `www.dayibiza.link` y `link-app.comunikoo.workers.dev`.
 - Seguridad HTTPS: `http://dayibiza.link/*` redirige a `https://dayibiza.link/*` con `308`; las respuestas HTTPS incluyen `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`.
 - Certificado verificado el 2026-06-04: `dayibiza.link`, TLSv1.3, issuer `Google Trust Services`, HTTP/2.
-- Version Cloudflare actual: `a4b4fe42-317a-4013-b7cb-6eb19ad7b3a4`
+- Version Cloudflare actual: `e8beec11-d420-424b-a2bd-394d2e955348`
 - Plataforma: Cloudflare Workers con OpenNext.
 - Motivo: la app usa Next.js full-stack con route handlers, redirecciones dinamicas y persistencia. Cloudflare Pages queda mejor para sitios estaticos; para esta app se usa Workers/OpenNext.
 - KV namespace: `LINK_APP_STORE`
@@ -109,6 +109,9 @@ git push origin v1-link-up
 - `src/app/api/auth/login/route.ts`: crea sesion de usuario.
 - `src/app/api/auth/logout/route.ts`: cierra sesion actual.
 - `src/app/api/auth/register/route.ts`: registra usuario y crea sesion.
+- `src/app/api/api-keys/route.ts`: lista y crea API Keys desde el panel.
+- `src/app/api/api-keys/[id]/route.ts`: revoca API Keys.
+- `src/app/api/v1/links/route.ts`: API publica para crear enlaces con `Authorization: Bearer <API_KEY>`.
 - `src/app/api/snapshot/route.ts`: snapshot de links y dominios.
 - `src/app/api/users/route.ts`: lista usuarios del workspace.
 - `src/app/api/links/route.ts`: listar y crear links.
@@ -140,8 +143,18 @@ Modelo:
 - `clickEvents`: eventos de clic para analitica.
 - `users`: usuarios registrados.
 - `sessions`: sesiones activas con expiracion.
+- `apiKeys`: claves API hasheadas, con prefijo visible, scopes, ultimo uso y revocacion.
 
 Desde V3, las APIs del panel requieren sesion. La ruta publica `/:slug` queda sin autenticacion para que los enlaces cortos sigan redirigiendo a cualquier visitante.
+
+Las integraciones externas usan API Keys y pueden crear links por:
+
+```text
+POST /api/v1/links
+Authorization: Bearer <API_KEY>
+```
+
+La API Key completa solo se muestra una vez al crearla. En persistencia solo se guarda `tokenHash` y `prefix`.
 
 En desarrollo local, si no hay contexto Cloudflare, se usa:
 
@@ -260,7 +273,7 @@ Validacion:
 
 Estado: desplegada en Cloudflare el 2026-06-04.
 
-Cloudflare version id: `a4b4fe42-317a-4013-b7cb-6eb19ad7b3a4`
+Cloudflare version id: `e8beec11-d420-424b-a2bd-394d2e955348`
 
 Contenido:
 
@@ -273,6 +286,10 @@ Contenido:
 - Vista Analytics tipo Bitly con filtros por periodo y link.
 - Modulos Analytics: KPIs, interacciones en el tiempo, links top, referentes, ubicacion, dispositivos, navegadores y campanas.
 - Exportacion CSV de eventos filtrados desde Analytics.
+- Seccion API Keys para generar y revocar claves de integracion.
+- Endpoint remoto `POST /api/v1/links` para crear enlaces desde MCP, n8n, CRMs u otros proyectos.
+- Las API Keys se guardan hasheadas y solo se revela el token completo una vez.
+- Cada API Key tiene scope `links:create`, prefijo visible y `lastUsedAt`.
 - Vista de usuarios con listado del workspace.
 - Vista de dominios inspirada en el flujo de conectar dominio propio.
 - Registro y login con cookie HTTP-only `link_app_session`.
@@ -304,6 +321,8 @@ Validacion produccion:
 - `https://dayibiza.link/api/snapshot` devuelve `401` sin sesion.
 - TLS verificado con `curl -vI`: TLSv1.3, certificado para `dayibiza.link`, issuer `Google Trust Services`.
 - Bundle de produccion verificado con navegacion `Analytics` y textos de modulos desplegados.
+- API Keys validado en local: crear key, crear link remoto con `Bearer`, recibir `shortUrl`, redireccion publica `307`, `401` sin key y `401` tras revocar.
+- API Keys desplegado en Cloudflare: `POST https://dayibiza.link/api/v1/links` devuelve `401` sin Bearer, HTTP redirige a HTTPS con `308`, HTTPS conserva HSTS.
 
 Pendiente despues de desplegar V3:
 

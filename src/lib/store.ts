@@ -14,7 +14,8 @@ const emptyStore = (): Store => ({
   links: [],
   clickEvents: [],
   users: [],
-  sessions: []
+  sessions: [],
+  apiKeys: []
 });
 
 type ClickMetadata = {
@@ -316,7 +317,8 @@ function normalizeStore(store: Partial<Store>): Store {
     })),
     clickEvents: store.clickEvents ?? [],
     users: store.users ?? [],
-    sessions: (store.sessions ?? []).filter((session) => new Date(session.expiresAt).getTime() > Date.now())
+    sessions: (store.sessions ?? []).filter((session) => new Date(session.expiresAt).getTime() > Date.now()),
+    apiKeys: store.apiKeys ?? []
   };
 
   for (const link of normalized.links) {

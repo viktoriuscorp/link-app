@@ -60,10 +60,23 @@ export type Session = {
   expiresAt: string;
 };
 
+export type ApiKey = {
+  id: string;
+  name: string;
+  prefix: string;
+  tokenHash: string;
+  createdByUserId: string;
+  scopes: Array<"links:create">;
+  createdAt: string;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+};
+
 export type Store = {
   domains: Domain[];
   links: ShortLink[];
   clickEvents: ClickEvent[];
   users: User[];
   sessions: Session[];
+  apiKeys: ApiKey[];
 };

@@ -1,4 +1,5 @@
 import { Dashboard } from "@/components/dashboard";
+import { listApiKeys } from "@/lib/api-keys";
 import { getCurrentUser, listUsers } from "@/lib/auth";
 import { getSnapshot } from "@/lib/store";
 import { redirect } from "next/navigation";
@@ -14,6 +15,7 @@ export default async function Home() {
 
   const snapshot = await getSnapshot();
   const users = await listUsers();
+  const apiKeys = await listApiKeys();
 
-  return <Dashboard currentUser={currentUser} initialSnapshot={snapshot} initialUsers={users} />;
+  return <Dashboard currentUser={currentUser} initialApiKeys={apiKeys} initialSnapshot={snapshot} initialUsers={users} />;
 }

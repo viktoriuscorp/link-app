@@ -72,3 +72,9 @@ export const registerSchema = loginSchema.extend({
   name: z.string().trim().min(2, "Introduce tu nombre.").max(80),
   workspaceName: z.string().trim().min(2).max(80).optional().default("My Workspace")
 });
+
+export const createApiKeySchema = z.object({
+  name: z.string().trim().min(2, "Pon un nombre para la API Key.").max(80)
+});
+
+export const remoteCreateLinkSchema = createLinkSchema;

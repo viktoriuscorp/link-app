@@ -13,6 +13,7 @@ import {
   FileUp,
   Filter,
   Globe2,
+  KeyRound,
   LayoutDashboard,
   Link2,
   Loader2,
@@ -36,13 +37,14 @@ import {
 import QRCode from "qrcode";
 import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { PublicApiKey } from "@/lib/api-keys";
 import type { PublicUser } from "@/lib/auth";
 import type { ClickEvent, Domain, ShortLink, Store } from "@/lib/types";
 import { DEFAULT_BASE_URL } from "@/lib/config";
 
 type Snapshot = Pick<Store, "domains" | "links" | "clickEvents">;
 type Toast = { tone: "success" | "error"; text: string } | null;
-type View = "create" | "links" | "analytics" | "users" | "domains" | "imports" | "settings";
+type View = "create" | "links" | "analytics" | "apiKeys" | "users" | "domains" | "imports" | "settings";
 type LinkUpdateInput = Partial<Omit<ShortLink, "tags">> & { tags?: string };
 type AnalyticsRow = { count: number; label: string; percent: number };
 
@@ -67,10 +69,12 @@ const emptyLinkForm = {
 
 export function Dashboard({
   currentUser,
+  initialApiKeys,
   initialSnapshot,
   initialUsers
 }: {
   currentUser: PublicUser;
+  initialApiKeys: PublicApiKey[];
   initialSnapshot: Snapshot;
   initialUsers: PublicUser[];
 }) {
@@ -78,12 +82,15 @@ export function Dashboard({
   const [domains, setDomains] = useState(initialSnapshot.domains);
   const [links, setLinks] = useState(initialSnapshot.links);
   const [clickEvents, setClickEvents] = useState(initialSnapshot.clickEvents);
+  const [apiKeys, setApiKeys] = useState(initialApiKeys);
   const [users, setUsers] = useState(initialUsers);
   const [toast, setToast] = useState<Toast>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [activeView, setActiveView] = useState<View>("links");
   const [linkForm, setLinkForm] = useState(emptyLinkForm);
+  const [apiKeyForm, setApiKeyForm] = useState({ name: "" });
+  const [newApiToken, setNewApiToken] = useState("");
   const [domainForm, setDomainForm] = useState({ hostname: "" });
 
   const stats = useMemo(
@@ -112,16 +119,19 @@ export function Dashboard({
   }, [links, query]);
 
   async function refresh() {
-    const [snapshotResponse, usersResponse] = await Promise.all([
+    const [snapshotResponse, usersResponse, apiKeysResponse] = await Promise.all([
       fetch("/api/snapshot", { cache: "no-store" }),
-      fetch("/api/users", { cache: "no-store" })
+      fetch("/api/users", { cache: "no-store" }),
+      fetch("/api/api-keys", { cache: "no-store" })
     ]);
     const snapshot = (await snapshotResponse.json()) as Snapshot;
     const latestUsers = (await usersResponse.json()) as PublicUser[];
+    const latestApiKeys = (await apiKeysResponse.json()) as PublicApiKey[];
     setDomains(snapshot.domains);
     setLinks(snapshot.links);
     setClickEvents(snapshot.clickEvents);
     setUsers(latestUsers);
+    setApiKeys(latestApiKeys);
   }
 
   async function logout() {
@@ -163,6 +173,56 @@ export function Dashboard({
       setToast({ tone: "success", text: "Link creado." });
     } catch (error) {
       setToast({ tone: "error", text: error instanceof Error ? error.message : "No se pudo crear." });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function createApiKey(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy("create-api-key");
+    setToast(null);
+    setNewApiToken("");
+
+    try {
+      const response = await fetch("/api/api-keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(apiKeyForm)
+      });
+      const payload = (await response.json()) as { apiKey?: PublicApiKey; message?: string; token?: string };
+
+      if (!response.ok || !payload.apiKey || !payload.token) {
+        throw new Error(payload.message || "No se pudo crear la API Key.");
+      }
+
+      setApiKeys((current) => [payload.apiKey as PublicApiKey, ...current]);
+      setApiKeyForm({ name: "" });
+      setNewApiToken(payload.token);
+      setToast({ tone: "success", text: "API Key creada. Copiala ahora." });
+    } catch (error) {
+      setToast({ tone: "error", text: error instanceof Error ? error.message : "No se pudo crear la API Key." });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function revokeKey(apiKeyId: string) {
+    setBusy(`revoke-api-key-${apiKeyId}`);
+    setToast(null);
+
+    try {
+      const response = await fetch(`/api/api-keys/${apiKeyId}`, { method: "DELETE" });
+      const payload = (await response.json()) as PublicApiKey & { message?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.message || "No se pudo revocar la API Key.");
+      }
+
+      setApiKeys((current) => current.map((apiKey) => (apiKey.id === payload.id ? payload : apiKey)));
+      setToast({ tone: "success", text: "API Key revocada." });
+    } catch (error) {
+      setToast({ tone: "error", text: error instanceof Error ? error.message : "No se pudo revocar." });
     } finally {
       setBusy(null);
     }
@@ -327,6 +387,13 @@ export function Dashboard({
           >
             Analytics
           </NavButton>
+          <NavButton
+            icon={<KeyRound size={18} />}
+            active={activeView === "apiKeys"}
+            onClick={() => setActiveView("apiKeys")}
+          >
+            API Keys
+          </NavButton>
           <NavButton icon={<Users size={18} />} active={activeView === "users"} onClick={() => setActiveView("users")}>
             Usuarios
           </NavButton>
@@ -395,6 +462,18 @@ export function Dashboard({
 
         {activeView === "analytics" ? (
           <AnalyticsView clickEvents={clickEvents} links={links} stats={stats} />
+        ) : null}
+
+        {activeView === "apiKeys" ? (
+          <ApiKeysView
+            apiKeyForm={apiKeyForm}
+            apiKeys={apiKeys}
+            busy={busy}
+            newApiToken={newApiToken}
+            setApiKeyForm={setApiKeyForm}
+            onCreate={createApiKey}
+            onRevoke={revokeKey}
+          />
         ) : null}
 
         {activeView === "users" ? <UsersView currentUser={currentUser} users={users} /> : null}
@@ -975,6 +1054,146 @@ function TopLinksPanel({
         </div>
       ))}
     </div>
+  );
+}
+
+function ApiKeysView({
+  apiKeyForm,
+  apiKeys,
+  busy,
+  newApiToken,
+  setApiKeyForm,
+  onCreate,
+  onRevoke
+}: {
+  apiKeyForm: { name: string };
+  apiKeys: PublicApiKey[];
+  busy: string | null;
+  newApiToken: string;
+  setApiKeyForm: (value: { name: string }) => void;
+  onCreate: (event: FormEvent<HTMLFormElement>) => void;
+  onRevoke: (id: string) => void;
+}) {
+  const [endpoint, setEndpoint] = useState("https://dayibiza.link/api/v1/links");
+
+  useEffect(() => {
+    setEndpoint(`${window.location.origin}/api/v1/links`);
+  }, []);
+
+  return (
+    <section className="api-keys-view">
+      <div className="api-key-hero">
+        <div>
+          <KeyRound size={28} />
+          <h2>API Keys</h2>
+          <p>Conexion remota para crear enlaces desde otros proyectos, automatizaciones o MCP.</p>
+        </div>
+        <div className="api-endpoint">
+          <span>POST</span>
+          <code>{endpoint}</code>
+          <button
+            className="icon-button subtle"
+            type="button"
+            title="Copiar endpoint"
+            onClick={() => navigator.clipboard.writeText(endpoint)}
+          >
+            <Clipboard size={16} />
+          </button>
+        </div>
+      </div>
+
+      {newApiToken ? (
+        <div className="api-token-reveal">
+          <div>
+            <strong>Token creado</strong>
+            <p>Copialo ahora. Despues solo se mostrara el prefijo.</p>
+          </div>
+          <code>{newApiToken}</code>
+          <button className="small-button" type="button" onClick={() => navigator.clipboard.writeText(newApiToken)}>
+            <Clipboard size={15} />
+            Copiar
+          </button>
+        </div>
+      ) : null}
+
+      <div className="api-key-layout">
+        <form className="dashboard-card api-key-form" onSubmit={onCreate}>
+          <div className="section-heading">
+            <div>
+              <h2>Nueva API Key</h2>
+              <p>Crea una clave para integraciones externas.</p>
+            </div>
+          </div>
+          <label>
+            Nombre
+            <input
+              required
+              minLength={2}
+              placeholder="MCP, n8n, CRM..."
+              value={apiKeyForm.name}
+              onChange={(event) => setApiKeyForm({ name: event.target.value })}
+            />
+          </label>
+          <button className="primary-action" disabled={busy === "create-api-key"}>
+            {busy === "create-api-key" ? <Loader2 className="spin" size={18} /> : <KeyRound size={18} />}
+            Generar API Key
+          </button>
+        </form>
+
+        <div className="dashboard-card api-doc-card">
+          <div className="section-heading">
+            <div>
+              <h2>Crear link por API</h2>
+              <p>Autenticacion Bearer y JSON.</p>
+            </div>
+          </div>
+          <pre>{`Authorization: Bearer <API_KEY>
+Content-Type: application/json
+
+{
+  "targetUrl": "https://example.com",
+  "title": "Campana externa",
+  "slug": "campana",
+  "domainId": "base",
+  "tags": "mcp, api",
+  "campaign": "externa"
+}`}</pre>
+        </div>
+      </div>
+
+      <div className="dashboard-card api-key-table">
+        <div className="api-key-head">
+          <span>Nombre</span>
+          <span>Prefijo</span>
+          <span>Ultimo uso</span>
+          <span>Estado</span>
+          <span />
+        </div>
+        {apiKeys.length ? (
+          apiKeys.map((apiKey) => (
+            <div className="api-key-row" key={apiKey.id}>
+              <strong>{apiKey.name}</strong>
+              <code>{apiKey.prefix}...</code>
+              <span>{apiKey.lastUsedAt ? formatDate(apiKey.lastUsedAt) : "-"}</span>
+              <span className={`status-badge ${apiKey.revokedAt ? "paused" : "active"}`}>
+                {apiKey.revokedAt ? "Revocada" : "Activa"}
+              </span>
+              <button
+                className="small-button ghost"
+                disabled={Boolean(apiKey.revokedAt) || busy === `revoke-api-key-${apiKey.id}`}
+                type="button"
+                onClick={() => onRevoke(apiKey.id)}
+              >
+                {busy === `revoke-api-key-${apiKey.id}` ? <Loader2 className="spin" size={15} /> : <Trash2 size={15} />}
+                Revocar
+              </button>
+            </div>
+          ))
+        ) : (
+          <EmptyState text="Aun no hay API Keys." />
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -1637,6 +1856,7 @@ function viewTitle(view: View) {
     create: "Crear nuevo enlace",
     links: "Todos los enlaces de seguimiento",
     analytics: "Analytics",
+    apiKeys: "API Keys",
     users: "Usuarios",
     domains: "Dominios",
     imports: "Importacion masiva",
@@ -1649,6 +1869,7 @@ function viewSubtitle(view: View) {
     create: "Configura destino, UTMs, expiracion y QR.",
     links: "Gestiona tus enlaces, clics y URLs cortas.",
     analytics: "Origen, ubicacion y rendimiento de tus enlaces.",
+    apiKeys: "Genera claves para crear enlaces desde proyectos externos.",
     users: "Gestiona las personas del workspace.",
     domains: "Conecta dominios personalizados.",
     imports: "Carga enlaces en lote.",
