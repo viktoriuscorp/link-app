@@ -26,6 +26,9 @@ Objetivo del MVP:
 ## Produccion
 
 - URL actual: `https://link-app.comunikoo.workers.dev`
+- Dominio custom configurado: `https://dayibiza.link`
+- Alias custom configurado: `https://www.dayibiza.link`
+- Estado del dominio custom el 2026-06-04: triggers aplicados con `wrangler triggers deploy`; Cloudflare nameservers responden, pero la delegacion publica del registry `.link` y el certificado HTTPS pueden tardar unos minutos en propagarse.
 - Plataforma: Cloudflare Workers con OpenNext.
 - Motivo: la app usa Next.js full-stack con route handlers, redirecciones dinamicas y persistencia. Cloudflare Pages queda mejor para sitios estaticos; para esta app se usa Workers/OpenNext.
 - KV namespace: `LINK_APP_STORE`
