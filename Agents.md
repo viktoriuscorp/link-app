@@ -1,10 +1,10 @@
 # Agents.md
 
-Este documento es la memoria operativa de Link App. Debe actualizarse cada vez que se haga un cambio relevante, una version nueva, un despliegue o una decision tecnica que afecte al producto.
+Este documento es la memoria operativa de dayibiza.link. Debe actualizarse cada vez que se haga un cambio relevante, una version nueva, un despliegue o una decision tecnica que afecte al producto.
 
 ## Producto
 
-Link App es una aplicacion privada tipo Bitly para crear enlaces cortos, redirigirlos a URLs externas, contar clics y preparar el uso de dominios personalizados.
+dayibiza.link es una aplicacion privada tipo Bitly para crear enlaces cortos, redirigirlos a URLs externas, contar clics y preparar el uso de dominios personalizados.
 
 Objetivo del MVP:
 
@@ -23,6 +23,7 @@ Objetivo del MVP:
 - Rama principal: `main`
 - Version inicial etiquetada: `v1-link-up`
 - Versiones etiquetadas: `v1-link-up`, `v2-link-up`, `v3-link-up`
+- Nombre actual del producto: `dayibiza.link`
 
 ## Produccion
 
@@ -33,7 +34,7 @@ Objetivo del MVP:
 - HTTPS: activo y verificado en `dayibiza.link`, `www.dayibiza.link` y `link-app.comunikoo.workers.dev`.
 - Seguridad HTTPS: `http://dayibiza.link/*` redirige a `https://dayibiza.link/*` con `308`; las respuestas HTTPS incluyen `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`.
 - Certificado verificado el 2026-06-04: `dayibiza.link`, TLSv1.3, issuer `Google Trust Services`, HTTP/2.
-- Version Cloudflare actual: `b3309849-bc54-49b8-bd78-2fe20c851b23`
+- Version Cloudflare actual: `86fe1c3a-155d-4dd4-96cc-7a60bbef3144`
 - Plataforma: Cloudflare Workers con OpenNext.
 - Motivo: la app usa Next.js full-stack con route handlers, redirecciones dinamicas y persistencia. Cloudflare Pages queda mejor para sitios estaticos; para esta app se usa Workers/OpenNext.
 - KV namespace: `LINK_APP_STORE`
@@ -273,11 +274,12 @@ Validacion:
 
 Estado: desplegada en Cloudflare el 2026-06-04.
 
-Cloudflare version id: `b3309849-bc54-49b8-bd78-2fe20c851b23`
+Cloudflare version id: `86fe1c3a-155d-4dd4-96cc-7a60bbef3144`
 
 Contenido:
 
 - Redisenio del panel hacia un dashboard tipo Linkly/Bitly.
+- Branding oficial actualizado a `dayibiza.link` en login, sidebar, metadata, configuracion y documentacion.
 - Sidebar fija con workspace, navegacion principal, uso de links ilimitados y logout.
 - Vistas separadas: crear enlace, enlaces, Analytics, usuarios, dominios, importacion masiva y configuracion.
 - Vista de crear enlace con panel de destino, slug/dominio, nombre interno, UTMs, campana, tags, expiracion, limite de clics, fallback y previsualizacion lateral.
@@ -324,6 +326,7 @@ Validacion produccion:
 - API Keys validado en local: crear key, crear link remoto con `Bearer`, recibir `shortUrl`, redireccion publica `307`, `401` sin key y `401` tras revocar.
 - API Keys desplegado en Cloudflare: `POST https://dayibiza.link/api/v1/links` devuelve `401` sin Bearer, HTTP redirige a HTTPS con `308`, HTTPS conserva HSTS.
 - App privada: login sin enlace de registro, `/register` redirige a `/login`, `/api/auth/register` devuelve `403`.
+- Branding `dayibiza.link` verificado en produccion en `/login` con cache-busting y en el dominio worker.
 
 Pendiente despues de desplegar V3:
 

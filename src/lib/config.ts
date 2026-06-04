@@ -1,4 +1,4 @@
-export const APP_NAME = "Link App";
+export const APP_NAME = "dayibiza.link";
 
 export const CNAME_TARGET =
   process.env.SHORTLINK_CNAME_TARGET ||

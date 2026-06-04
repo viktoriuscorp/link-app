@@ -364,7 +364,7 @@ export function Dashboard({
           <span className="brand-mark">
             <Link2 size={21} strokeWidth={2.4} />
           </span>
-          <strong>Link Up</strong>
+          <strong>dayibiza.link</strong>
         </div>
         <div className="workspace-switcher">
           <span>{initials(currentUser.name)}</span>

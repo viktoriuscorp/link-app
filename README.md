@@ -1,6 +1,6 @@
-# Link App
+# dayibiza.link
 
-Acortador de enlaces con panel de administracion, redirecciones por slug, dominios personalizados y contador de clics.
+Acortador privado de enlaces con panel de administracion, redirecciones por slug, dominios personalizados y contador de clics.
 
 ## Desarrollo local
 

@@ -47,7 +47,7 @@ export function AuthForm() {
             <Link2 size={21} strokeWidth={2.4} />
           </span>
           <div>
-            <h1>Link App</h1>
+            <h1>dayibiza.link</h1>
             <p>Accede a tu workspace</p>
           </div>
         </div>

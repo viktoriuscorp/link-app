@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Link App",
-  description: "Acortador de links con dominios personalizados"
+  title: "dayibiza.link",
+  description: "Acortador privado de links con dominios personalizados"
 };
 
 export default function RootLayout({
