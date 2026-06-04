@@ -44,11 +44,18 @@ import { DEFAULT_BASE_URL } from "@/lib/config";
 
 type Snapshot = Pick<Store, "domains" | "links" | "clickEvents">;
 type Toast = { tone: "success" | "error"; text: string } | null;
-type View = "create" | "links" | "analytics" | "apiKeys" | "users" | "domains" | "imports" | "settings";
+type View = "overview" | "create" | "links" | "analytics" | "apiKeys" | "users" | "domains" | "imports" | "settings";
 type LinkUpdateInput = Partial<Omit<ShortLink, "tags">> & { tags?: string };
 type AnalyticsRow = { count: number; label: string; percent: number };
 type AnalyticsInsight = { detail: string; label: string; source: string; value: string } | null;
 type UserFormState = { name: string; email: string; password: string; role: PublicUser["role"] };
+type DashboardStats = {
+  activeLinks: number;
+  clicks: number;
+  links: number;
+  uniqueClicks: number;
+  verifiedDomains: number;
+};
 
 const ANALYTICS_COLORS = ["#4faeba", "#b8f0f5", "#3151c9", "#b8c8ff", "#f08b27", "#87d4c9"];
 
@@ -89,7 +96,7 @@ export function Dashboard({
   const [toast, setToast] = useState<Toast>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [activeView, setActiveView] = useState<View>("links");
+  const [activeView, setActiveView] = useState<View>("overview");
   const [linkForm, setLinkForm] = useState(emptyLinkForm);
   const [apiKeyForm, setApiKeyForm] = useState({ name: "" });
   const [newApiToken, setNewApiToken] = useState("");
@@ -435,6 +442,13 @@ export function Dashboard({
           </div>
         </div>
         <nav className="sidebar-nav" aria-label="Navegacion principal">
+          <NavButton
+            icon={<LayoutDashboard size={18} />}
+            active={activeView === "overview"}
+            onClick={() => setActiveView("overview")}
+          >
+            Inicio
+          </NavButton>
           <NavButton icon={<Plus size={18} />} active={activeView === "create"} onClick={() => setActiveView("create")}>
             Crear nuevo enlace
           </NavButton>
@@ -496,6 +510,19 @@ export function Dashboard({
             </button>
           </div>
         </header>
+
+        {activeView === "overview" ? (
+          <OverviewView
+            apiKeys={apiKeys}
+            clickEvents={clickEvents}
+            currentUser={currentUser}
+            domains={domains}
+            links={links}
+            stats={stats}
+            users={users}
+            onNavigate={setActiveView}
+          />
+        ) : null}
 
         {activeView === "create" ? (
           <CreateLinkView
@@ -583,6 +610,269 @@ function NavButton({
       {icon}
       {children}
     </button>
+  );
+}
+
+function OverviewView({
+  apiKeys,
+  clickEvents,
+  currentUser,
+  domains,
+  links,
+  onNavigate,
+  stats,
+  users
+}: {
+  apiKeys: PublicApiKey[];
+  clickEvents: ClickEvent[];
+  currentUser: PublicUser;
+  domains: Domain[];
+  links: ShortLink[];
+  onNavigate: (view: View) => void;
+  stats: DashboardStats;
+  users: PublicUser[];
+}) {
+  const lastWeekEvents = filterAnalyticsEvents(clickEvents, "7", "all");
+  const weeklyTimeline = lastNDays(lastWeekEvents, 7);
+  const directCount = groupAnalytics(lastWeekEvents, (event) => readableReferrer(event.referrer)).find(
+    (item) => item.label === "Directo"
+  )?.count ?? 0;
+  const activeApiKeys = apiKeys.filter((apiKey) => !apiKey.revokedAt).length;
+  const pendingDomains = domains.filter((domain) => domain.status !== "verified").length;
+  const expiredLinks = links.filter(isExpired).length;
+  const recentEvents = clickEvents
+    .toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 5);
+  const latestLinks = links
+    .toSorted((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    .slice(0, 4);
+  const topLinks = links
+    .map((link) => ({
+      link,
+      count: clickEvents.filter((event) => event.linkId === link.id).length
+    }))
+    .filter((item) => item.count > 0)
+    .toSorted((a, b) => b.count - a.count)
+    .slice(0, 4);
+
+  return (
+    <section className="overview-view">
+      <div className="overview-hero">
+        <div>
+          <small>{currentUser.workspaceName}</small>
+          <h2>Hola, {currentUser.name}</h2>
+          <p>Vista general de enlaces, trafico, dominios, API Keys y usuarios.</p>
+        </div>
+        <div className="overview-actions">
+          <button className="primary-action" type="button" onClick={() => onNavigate("create")}>
+            <Plus size={18} />
+            Crear enlace
+          </button>
+          <button className="ghost-action" type="button" onClick={() => onNavigate("analytics")}>
+            <BarChart3 size={18} />
+            Ver Analytics
+          </button>
+        </div>
+      </div>
+
+      <div className="overview-metrics">
+        <OverviewMetric
+          detail={`${stats.activeLinks} activos`}
+          icon={<Link2 size={20} />}
+          label="Links"
+          value={stats.links}
+        />
+        <OverviewMetric
+          detail={`${stats.uniqueClicks} visitantes unicos`}
+          icon={<MousePointerClick size={20} />}
+          label="Clics totales"
+          value={stats.clicks}
+        />
+        <OverviewMetric
+          detail={`${domains.length} dominios conectados`}
+          icon={<Globe2 size={20} />}
+          label="Dominios verificados"
+          value={stats.verifiedDomains}
+        />
+        <OverviewMetric
+          detail={`${activeApiKeys} activas`}
+          icon={<KeyRound size={20} />}
+          label="API Keys"
+          value={apiKeys.length}
+        />
+      </div>
+
+      <div className="overview-grid">
+        <article className="overview-panel overview-panel-wide">
+          <div className="overview-panel-head">
+            <div>
+              <small>Ultimos 7 dias</small>
+              <h3>Actividad general</h3>
+            </div>
+            <strong>{lastWeekEvents.length} clics</strong>
+          </div>
+          <MiniSparkline data={weeklyTimeline} />
+          <div className="overview-chip-row">
+            <span>{directCount} directos</span>
+            <span>{lastWeekEvents.length ? Math.round((directCount / lastWeekEvents.length) * 100) : 0}% directo</span>
+            <span>{clickEvents.length} eventos historicos</span>
+          </div>
+        </article>
+
+        <article className="overview-panel">
+          <div className="overview-panel-head">
+            <div>
+              <small>Ranking</small>
+              <h3>Top links</h3>
+            </div>
+            <button className="icon-button subtle" type="button" title="Ver enlaces" onClick={() => onNavigate("links")}>
+              <ExternalLink size={16} />
+            </button>
+          </div>
+          <OverviewList
+            emptyText="Aun no hay clics en enlaces."
+            rows={topLinks.map((item) => ({
+              label: item.link.title,
+              meta: `/${item.link.slug}`,
+              value: `${item.count}`
+            }))}
+          />
+        </article>
+
+        <article className="overview-panel">
+          <div className="overview-panel-head">
+            <div>
+              <small>Workspace</small>
+              <h3>Estado</h3>
+            </div>
+            <Activity size={19} />
+          </div>
+          <div className="overview-status-list">
+            <OverviewStatus label="Links activos" value={`${stats.activeLinks}/${stats.links}`} tone="good" />
+            <OverviewStatus label="Links expirados" value={String(expiredLinks)} tone={expiredLinks ? "warn" : "good"} />
+            <OverviewStatus
+              label="Dominios pendientes"
+              value={String(pendingDomains)}
+              tone={pendingDomains ? "warn" : "good"}
+            />
+            <OverviewStatus label="Usuarios" value={String(users.length)} tone="neutral" />
+          </div>
+        </article>
+
+        <article className="overview-panel">
+          <div className="overview-panel-head">
+            <div>
+              <small>Recientes</small>
+              <h3>Ultima actividad</h3>
+            </div>
+            <button className="icon-button subtle" type="button" title="Ver Analytics" onClick={() => onNavigate("analytics")}>
+              <BarChart3 size={16} />
+            </button>
+          </div>
+          <OverviewList
+            emptyText="Todavia no hay actividad."
+            rows={recentEvents.map((event) => ({
+              label: event.slug,
+              meta: `${countryName(event.country)} · ${readableReferrer(event.referrer)}`,
+              value: formatDate(event.createdAt)
+            }))}
+          />
+        </article>
+
+        <article className="overview-panel">
+          <div className="overview-panel-head">
+            <div>
+              <small>Actualizados</small>
+              <h3>Enlaces recientes</h3>
+            </div>
+            <button className="icon-button subtle" type="button" title="Ver enlaces" onClick={() => onNavigate("links")}>
+              <Link2 size={16} />
+            </button>
+          </div>
+          <OverviewList
+            emptyText="Crea tu primer enlace."
+            rows={latestLinks.map((link) => ({
+              label: link.title,
+              meta: buildShortUrl(link, domains),
+              value: link.isActive && !isExpired(link) ? "Activo" : "Pausado"
+            }))}
+          />
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function OverviewMetric({
+  detail,
+  icon,
+  label,
+  value
+}: {
+  detail: string;
+  icon: ReactNode;
+  label: string;
+  value: number;
+}) {
+  return (
+    <article className="overview-metric">
+      <span>{icon}</span>
+      <div>
+        <small>{label}</small>
+        <strong>{value}</strong>
+        <p>{detail}</p>
+      </div>
+    </article>
+  );
+}
+
+function MiniSparkline({ data }: { data: { count: number; label: string }[] }) {
+  const max = Math.max(1, ...data.map((item) => item.count));
+
+  return (
+    <div className="mini-sparkline" aria-label="Actividad de los ultimos 7 dias">
+      {data.map((item) => (
+        <span key={item.label} title={`${item.label}: ${item.count}`}>
+          <i style={{ height: `${Math.max(8, (item.count / max) * 100)}%` }} />
+          <small>{item.label}</small>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function OverviewList({
+  emptyText,
+  rows
+}: {
+  emptyText: string;
+  rows: { label: string; meta: string; value: string }[];
+}) {
+  if (!rows.length) {
+    return <EmptyState text={emptyText} />;
+  }
+
+  return (
+    <div className="overview-list">
+      {rows.map((row) => (
+        <div key={`${row.label}-${row.meta}`}>
+          <span>
+            <strong>{row.label}</strong>
+            <small>{row.meta}</small>
+          </span>
+          <em>{row.value}</em>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function OverviewStatus({ label, tone, value }: { label: string; tone: "good" | "neutral" | "warn"; value: string }) {
+  return (
+    <div className={`overview-status ${tone}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
   );
 }
 
@@ -2354,6 +2644,7 @@ function isExpired(link: ShortLink) {
 
 function viewTitle(view: View) {
   return {
+    overview: "Inicio",
     create: "Crear nuevo enlace",
     links: "Todos los enlaces de seguimiento",
     analytics: "Analytics",
@@ -2367,6 +2658,7 @@ function viewTitle(view: View) {
 
 function viewSubtitle(view: View) {
   return {
+    overview: "Resumen general del workspace.",
     create: "Configura destino, UTMs, expiracion y QR.",
     links: "Gestiona tus enlaces, clics y URLs cortas.",
     analytics: "Origen, ubicacion y rendimiento de tus enlaces.",

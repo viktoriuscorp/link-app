@@ -34,7 +34,7 @@ Objetivo del MVP:
 - HTTPS: activo y verificado en `dayibiza.link`, `www.dayibiza.link` y `link-app.comunikoo.workers.dev`.
 - Seguridad HTTPS: `http://dayibiza.link/*` redirige a `https://dayibiza.link/*` con `308`; las respuestas HTTPS incluyen `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`.
 - Certificado verificado el 2026-06-04: `dayibiza.link`, TLSv1.3, issuer `Google Trust Services`, HTTP/2.
-- Version Cloudflare actual: `977b0909-ea19-4c87-a289-6038607ce92d`
+- Version Cloudflare actual: `e320c141-707a-45d5-a58d-7d314d639742`
 - Plataforma: Cloudflare Workers con OpenNext.
 - Motivo: la app usa Next.js full-stack con route handlers, redirecciones dinamicas y persistencia. Cloudflare Pages queda mejor para sitios estaticos; para esta app se usa Workers/OpenNext.
 - KV namespace: `LINK_APP_STORE`
@@ -274,13 +274,14 @@ Validacion:
 
 Estado: desplegada en Cloudflare el 2026-06-04.
 
-Cloudflare version id: `977b0909-ea19-4c87-a289-6038607ce92d`
+Cloudflare version id: `e320c141-707a-45d5-a58d-7d314d639742`
 
 Contenido:
 
 - Redisenio del panel hacia un dashboard tipo Linkly/Bitly.
 - Branding oficial actualizado a `dayibiza.link` en login, sidebar, metadata, configuracion y documentacion.
 - Sidebar fija con workspace, navegacion principal, uso de links ilimitados y logout.
+- Vista de inicio por defecto al abrir la app: resumen general del workspace con metricas, actividad de 7 dias, top links, estado de dominios/API/usuarios y enlaces recientes.
 - Vistas separadas: crear enlace, enlaces, Analytics, usuarios, dominios, importacion masiva y configuracion.
 - Vista de crear enlace con panel de destino, slug/dominio, nombre interno, UTMs, campana, tags, expiracion, limite de clics, fallback y previsualizacion lateral.
 - Vista de enlaces con tabla densa, buscador, exportacion visual y acciones existentes al expandir cada fila.
