@@ -29,6 +29,7 @@ Objetivo del MVP:
 - Dominio custom configurado: `https://dayibiza.link`
 - Alias custom configurado: `https://www.dayibiza.link`
 - Estado del dominio custom el 2026-06-04: triggers aplicados con `wrangler triggers deploy`; Cloudflare nameservers responden, pero la delegacion publica del registry `.link` y el certificado HTTPS pueden tardar unos minutos en propagarse.
+- Version Cloudflare actual: `101a812d-30ae-45c2-bac0-fb5f481cf83a`
 - Plataforma: Cloudflare Workers con OpenNext.
 - Motivo: la app usa Next.js full-stack con route handlers, redirecciones dinamicas y persistencia. Cloudflare Pages queda mejor para sitios estaticos; para esta app se usa Workers/OpenNext.
 - KV namespace: `LINK_APP_STORE`
@@ -202,9 +203,13 @@ Contenido:
 - README con comandos principales.
 - Deploy en `https://link-app.comunikoo.workers.dev`.
 
-### V2 local draft
+### v2-link-up
 
-Estado: implementada localmente, no desplegada en Cloudflare todavia.
+Estado: desplegada en Cloudflare el 2026-06-04.
+
+Commit base: `cdb087c`
+
+Cloudflare version id: `101a812d-30ae-45c2-bac0-fb5f481cf83a`
 
 Contenido:
 
@@ -223,12 +228,15 @@ Contenido:
 - Buscador/filtro de links.
 - Normalizacion de datos V1 al leer el store para evitar migraciones duras.
 
-Validacion local:
+Validacion:
 
 - `npm run typecheck`
 - `npm run build`
-- Smoke test local: crear link V2, redireccion `307`, registrar evento, actualizar link y comprobar snapshot.
-- Revision visual en `http://localhost:3000` sin errores de consola.
+- `npm run deploy`
+- Produccion `https://link-app.comunikoo.workers.dev` muestra `Version 2 local`.
+- `dayibiza.link` muestra V2 cuando se fuerza resolucion contra Cloudflare.
+- Smoke test produccion: crear link V2, comprobar redireccion `307` y borrar link de prueba.
+- Pendiente externo: DNS publico de `dayibiza.link` todavia puede tardar en resolver tras el registro.
 
 ## Reglas Para Futuras Sesiones
 
