@@ -199,6 +199,33 @@ Contenido:
 - README con comandos principales.
 - Deploy en `https://link-app.comunikoo.workers.dev`.
 
+### V2 local draft
+
+Estado: implementada localmente, no desplegada en Cloudflare todavia.
+
+Contenido:
+
+- Analitica por evento de clic.
+- Conteo de clics unicos por hash de visitante.
+- Captura de pais, dispositivo, navegador y referrer.
+- QR dinamico descargable por link.
+- Edicion inline de links.
+- Activar/pausar links.
+- Tags y campanas.
+- UTM builder en el formulario de creacion.
+- Expiracion por fecha.
+- Expiracion por limite de clics.
+- URL fallback para links pausados o expirados.
+- Buscador/filtro de links.
+- Normalizacion de datos V1 al leer el store para evitar migraciones duras.
+
+Validacion local:
+
+- `npm run typecheck`
+- `npm run build`
+- Smoke test local: crear link V2, redireccion `307`, registrar evento, actualizar link y comprobar snapshot.
+- Revision visual en `http://localhost:3000` sin errores de consola.
+
 ## Reglas Para Futuras Sesiones
 
 Antes de cambiar codigo:

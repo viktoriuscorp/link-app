@@ -15,7 +15,12 @@ export async function POST(request: NextRequest) {
       title: payload.title,
       slug: payload.slug || undefined,
       targetUrl: payload.targetUrl,
-      domainId: payload.domainId === "base" ? null : payload.domainId
+      domainId: payload.domainId === "base" ? null : payload.domainId,
+      tags: payload.tags,
+      campaign: payload.campaign,
+      expiresAt: payload.expiresAt || null,
+      clickLimit: payload.clickLimit || null,
+      fallbackUrl: payload.fallbackUrl
     });
 
     return NextResponse.json(link, { status: 201 });

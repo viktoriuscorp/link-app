@@ -24,16 +24,36 @@ export const hostnameSchema = z
     "Usa un dominio o subdominio valido, por ejemplo go.tumarca.com."
   );
 
+const optionalUrlSchema = z.union([urlSchema, z.literal("")]).optional().default("");
+const tagsSchema = z
+  .string()
+  .trim()
+  .max(160, "Los tags no pueden superar 160 caracteres.")
+  .optional()
+  .default("");
+const optionalTagsSchema = z.string().trim().max(160, "Los tags no pueden superar 160 caracteres.").optional();
+
 export const createLinkSchema = z.object({
   title: z.string().trim().max(90).optional().default(""),
   slug: z.union([slugSchema, z.literal("")]).optional().default(""),
   targetUrl: urlSchema,
-  domainId: z.union([z.string().min(1), z.literal("base")]).optional().default("base")
+  domainId: z.union([z.string().min(1), z.literal("base")]).optional().default("base"),
+  tags: tagsSchema,
+  campaign: z.string().trim().max(80).optional().default(""),
+  expiresAt: z.string().trim().optional().default(""),
+  clickLimit: z.coerce.number().int().positive().max(1000000).optional().nullable(),
+  fallbackUrl: optionalUrlSchema
 });
 
 export const updateLinkSchema = z.object({
   title: z.string().trim().max(90).optional(),
-  targetUrl: urlSchema.optional()
+  targetUrl: urlSchema.optional(),
+  isActive: z.boolean().optional(),
+  tags: optionalTagsSchema,
+  campaign: z.string().trim().max(80).optional(),
+  expiresAt: z.string().trim().nullable().optional(),
+  clickLimit: z.coerce.number().int().positive().max(1000000).nullable().optional(),
+  fallbackUrl: z.union([urlSchema, z.literal("")]).optional()
 });
 
 export const createDomainSchema = z.object({
