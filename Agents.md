@@ -34,7 +34,7 @@ Objetivo del MVP:
 - HTTPS: activo y verificado en `dayibiza.link`, `www.dayibiza.link` y `link-app.comunikoo.workers.dev`.
 - Seguridad HTTPS: `http://dayibiza.link/*` redirige a `https://dayibiza.link/*` con `308`; las respuestas HTTPS incluyen `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`.
 - Certificado verificado el 2026-06-04: `dayibiza.link`, TLSv1.3, issuer `Google Trust Services`, HTTP/2.
-- Version Cloudflare actual: `d5eb7557-a121-477a-83fd-16c0a2765b15`
+- Version Cloudflare actual: `9d87b991-3d62-4dc1-994c-cecf44703266`
 - Plataforma: Cloudflare Workers con OpenNext.
 - Motivo: la app usa Next.js full-stack con route handlers, redirecciones dinamicas y persistencia. Cloudflare Pages queda mejor para sitios estaticos; para esta app se usa Workers/OpenNext.
 - KV namespace: `LINK_APP_STORE`
@@ -353,7 +353,7 @@ Pendiente despues de desplegar V3:
 
 Estado: desplegado en Cloudflare el 2026-06-05.
 
-Cloudflare version id: `d5eb7557-a121-477a-83fd-16c0a2765b15`
+Cloudflare version id: `9d87b991-3d62-4dc1-994c-cecf44703266`
 
 Contenido:
 
@@ -362,6 +362,7 @@ Contenido:
 - Se anadio boton de menu en la topbar movil, overlay para cerrar, boton de cierre dentro del drawer, cierre con tecla Escape y cierre automatico al navegar a una seccion.
 - Buscador de la vista Enlaces ajustado en mobile para evitar que el `flex-basis` de escritorio lo convierta en un bloque alto/cuadrado.
 - Fallback de `DEFAULT_BASE_URL` cambiado de `http://localhost:3000` a `https://dayibiza.link` para que el creador de enlaces no muestre localhost en produccion cuando no exista `NEXT_PUBLIC_BASE_URL`.
+- Lista mobile de Enlaces compactada: el resumen plegado muestra nombre/dominio a la izquierda y metricas Hoy/Total a la derecha; URL corta, estado y acciones quedan para el desglose al tocar.
 
 Validacion local:
 
@@ -379,6 +380,7 @@ Validacion produccion:
 - `http://dayibiza.link/login` redirige a `https://dayibiza.link/login` con `308`.
 - CSS de produccion verificado en `/_next/static/chunks/07uyii2_xba4-.css`: incluye `sidebar.open`, `mobile-menu-backdrop.open` y el ajuste responsive `.link-command-actions .search-field`.
 - Bundle de produccion verificado en `/_next/static/chunks/0sh_bfngiqv35.js`: contiene `https://dayibiza.link` y ya no contiene `http://localhost:3000` como fallback de URL base.
+- CSS de produccion verificado en `/_next/static/chunks/40t123tsjfia2.css`: la fila mobile de Enlaces usa `grid-template-columns: minmax(0,1fr) 52px 58px`, altura compacta y oculta URL corta/acciones en el resumen plegado para mostrarlas en el desglose.
 
 ## Reglas Para Futuras Sesiones
 

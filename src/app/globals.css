@@ -2775,9 +2775,48 @@ code {
   }
 
   .link-card-list .link-row {
-    align-items: start;
+    grid-template-columns: minmax(0, 1fr) 52px 58px;
+    align-items: center;
+    gap: 8px;
+    min-height: 68px;
+    padding: 12px;
+  }
+
+  .link-card-list .link-name {
     gap: 10px;
-    padding: 14px;
+  }
+
+  .link-card-list .favicon-dot {
+    width: 34px;
+    height: 34px;
+  }
+
+  .link-card-list .link-name strong,
+  .link-card-list .link-name small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .link-card-list .link-row-metric {
+    justify-items: end;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  .link-card-list .link-row-metric small {
+    font-size: 10px;
+    line-height: 1;
+  }
+
+  .link-card-list .link-row-metric strong {
+    font-size: 16px;
+    line-height: 1.1;
+  }
+
+  .link-card-list .short-url,
+  .link-card-list .row-actions {
+    display: none;
   }
 
   .users-head {
