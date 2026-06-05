@@ -343,6 +343,20 @@ Pendiente despues de desplegar V3:
 - Revisar UX responsive en navegador con captura estable.
 - Si se anade cuota de links, debe ser editable/configurable; por defecto no hay limite de links.
 
+### Cambios posteriores a v3-link-up
+
+Estado: implementado el 2026-06-05, pendiente de despliegue.
+
+Contenido:
+
+- Navegacion movil del dashboard cambiada a menu lateral tipo drawer.
+- En mobile/tablet el sidebar ya no ocupa espacio vertical encima del contenido ni obliga a hacer scroll hacia abajo.
+- Se anadio boton de menu en la topbar movil, overlay para cerrar, boton de cierre dentro del drawer, cierre con tecla Escape y cierre automatico al navegar a una seccion.
+
+Validacion local:
+
+- `npm run typecheck`
+
 ## Reglas Para Futuras Sesiones
 
 Antes de cambiar codigo:

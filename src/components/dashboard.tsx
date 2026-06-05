@@ -20,6 +20,7 @@ import {
   Link2,
   Loader2,
   LogOut,
+  Menu,
   MoreHorizontal,
   MousePointerClick,
   Plus,
@@ -103,6 +104,33 @@ export function Dashboard({
   const [apiKeyForm, setApiKeyForm] = useState({ name: "" });
   const [newApiToken, setNewApiToken] = useState("");
   const [domainForm, setDomainForm] = useState({ hostname: "" });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) {
+      return;
+    }
+
+    const originalOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileMenuOpen]);
+
+  function navigateTo(view: View) {
+    setActiveView(view);
+    setMobileMenuOpen(false);
+  }
 
   const stats = useMemo(
     () => ({
@@ -429,12 +457,22 @@ export function Dashboard({
 
   return (
     <main className="dashboard-app">
-      <aside className="sidebar">
-        <div className="sidebar-brand">
-          <span className="brand-mark">
-            <Link2 size={21} strokeWidth={2.4} />
-          </span>
-          <strong>dayibiza.link</strong>
+      <aside className={`sidebar${mobileMenuOpen ? " open" : ""}`} aria-label="Menu principal">
+        <div className="sidebar-brand-row">
+          <div className="sidebar-brand">
+            <span className="brand-mark">
+              <Link2 size={21} strokeWidth={2.4} />
+            </span>
+            <strong>dayibiza.link</strong>
+          </div>
+          <button
+            aria-label="Cerrar menu"
+            className="mobile-sidebar-close"
+            type="button"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <X size={19} />
+          </button>
         </div>
         <div className="workspace-switcher">
           <span>{initials(currentUser.name)}</span>
@@ -448,20 +486,20 @@ export function Dashboard({
           <NavButton
             icon={<LayoutDashboard size={18} />}
             active={activeView === "overview"}
-            onClick={() => setActiveView("overview")}
+            onClick={() => navigateTo("overview")}
           >
             Inicio
           </NavButton>
-          <NavButton icon={<Plus size={18} />} active={activeView === "create"} onClick={() => setActiveView("create")}>
+          <NavButton icon={<Plus size={18} />} active={activeView === "create"} onClick={() => navigateTo("create")}>
             Crear nuevo enlace
           </NavButton>
-          <NavButton icon={<Link2 size={18} />} active={activeView === "links"} onClick={() => setActiveView("links")}>
+          <NavButton icon={<Link2 size={18} />} active={activeView === "links"} onClick={() => navigateTo("links")}>
             Enlaces
           </NavButton>
           <NavButton
             icon={<BarChart3 size={18} />}
             active={activeView === "analytics"}
-            onClick={() => setActiveView("analytics")}
+            onClick={() => navigateTo("analytics")}
           >
             Analytics
           </NavButton>
@@ -469,21 +507,21 @@ export function Dashboard({
           <NavButton
             icon={<KeyRound size={18} />}
             active={activeView === "apiKeys"}
-            onClick={() => setActiveView("apiKeys")}
+            onClick={() => navigateTo("apiKeys")}
           >
             API Keys
           </NavButton>
-          <NavButton icon={<Users size={18} />} active={activeView === "users"} onClick={() => setActiveView("users")}>
+          <NavButton icon={<Users size={18} />} active={activeView === "users"} onClick={() => navigateTo("users")}>
             Usuarios
           </NavButton>
-          <NavButton icon={<Globe2 size={18} />} active={activeView === "domains"} onClick={() => setActiveView("domains")}>
+          <NavButton icon={<Globe2 size={18} />} active={activeView === "domains"} onClick={() => navigateTo("domains")}>
             Dominios
           </NavButton>
           <span className="nav-section-label">Herramientas</span>
-          <NavButton icon={<FileUp size={18} />} active={activeView === "imports"} onClick={() => setActiveView("imports")}>
+          <NavButton icon={<FileUp size={18} />} active={activeView === "imports"} onClick={() => navigateTo("imports")}>
             Importacion masiva
           </NavButton>
-          <NavButton icon={<Settings size={18} />} active={activeView === "settings"} onClick={() => setActiveView("settings")}>
+          <NavButton icon={<Settings size={18} />} active={activeView === "settings"} onClick={() => navigateTo("settings")}>
             Configuracion
           </NavButton>
         </nav>
@@ -497,19 +535,36 @@ export function Dashboard({
           Salir
         </button>
       </aside>
+      <button
+        aria-label="Cerrar menu"
+        className={`mobile-menu-backdrop ${mobileMenuOpen ? "open" : ""}`}
+        type="button"
+        onClick={() => setMobileMenuOpen(false)}
+      />
 
       <section className="dashboard-main">
         <header className="dashboard-topbar">
-          <div>
-            <h1>{viewTitle(activeView)}</h1>
-            <p>{viewSubtitle(activeView)}</p>
+          <div className="dashboard-title-row">
+            <button
+              aria-expanded={mobileMenuOpen}
+              aria-label="Abrir menu"
+              className="mobile-menu-button"
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <h1>{viewTitle(activeView)}</h1>
+              <p>{viewSubtitle(activeView)}</p>
+            </div>
           </div>
           <div className="header-actions">
             {toast ? <span className={`toast ${toast.tone}`}>{toast.text}</span> : null}
             <button className="icon-button" type="button" onClick={refresh} title="Actualizar">
               <RefreshCw size={18} />
             </button>
-            <button className="primary-action" type="button" onClick={() => setActiveView("create")}>
+            <button className="primary-action" type="button" onClick={() => navigateTo("create")}>
               <Plus size={18} />
               Nuevo enlace
             </button>
@@ -525,7 +580,7 @@ export function Dashboard({
             links={links}
             stats={stats}
             users={users}
-            onNavigate={setActiveView}
+            onNavigate={navigateTo}
           />
         ) : null}
 
