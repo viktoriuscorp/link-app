@@ -34,7 +34,7 @@ Objetivo del MVP:
 - HTTPS: activo y verificado en `dayibiza.link`, `www.dayibiza.link` y `link-app.comunikoo.workers.dev`.
 - Seguridad HTTPS: `http://dayibiza.link/*` redirige a `https://dayibiza.link/*` con `308`; las respuestas HTTPS incluyen `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`.
 - Certificado verificado el 2026-06-04: `dayibiza.link`, TLSv1.3, issuer `Google Trust Services`, HTTP/2.
-- Version Cloudflare actual: `d963a229-ba76-432b-9e59-60218c1cc122`
+- Version Cloudflare actual: `d5eb7557-a121-477a-83fd-16c0a2765b15`
 - Plataforma: Cloudflare Workers con OpenNext.
 - Motivo: la app usa Next.js full-stack con route handlers, redirecciones dinamicas y persistencia. Cloudflare Pages queda mejor para sitios estaticos; para esta app se usa Workers/OpenNext.
 - KV namespace: `LINK_APP_STORE`
@@ -164,6 +164,12 @@ data/store.json
 ```
 
 Ese archivo esta ignorado por Git.
+
+## URL Base
+
+- `DEFAULT_BASE_URL` viene de `NEXT_PUBLIC_BASE_URL`.
+- Si `NEXT_PUBLIC_BASE_URL` no esta definida en build/deploy, el fallback del producto es `https://dayibiza.link`.
+- No usar `localhost` como fallback de produccion porque la previsualizacion del creador de enlaces se compila en el bundle de cliente.
 
 ## Dominios Personalizados
 
@@ -347,7 +353,7 @@ Pendiente despues de desplegar V3:
 
 Estado: desplegado en Cloudflare el 2026-06-05.
 
-Cloudflare version id: `d963a229-ba76-432b-9e59-60218c1cc122`
+Cloudflare version id: `d5eb7557-a121-477a-83fd-16c0a2765b15`
 
 Contenido:
 
@@ -355,6 +361,7 @@ Contenido:
 - En mobile/tablet el sidebar ya no ocupa espacio vertical encima del contenido ni obliga a hacer scroll hacia abajo.
 - Se anadio boton de menu en la topbar movil, overlay para cerrar, boton de cierre dentro del drawer, cierre con tecla Escape y cierre automatico al navegar a una seccion.
 - Buscador de la vista Enlaces ajustado en mobile para evitar que el `flex-basis` de escritorio lo convierta en un bloque alto/cuadrado.
+- Fallback de `DEFAULT_BASE_URL` cambiado de `http://localhost:3000` a `https://dayibiza.link` para que el creador de enlaces no muestre localhost en produccion cuando no exista `NEXT_PUBLIC_BASE_URL`.
 
 Validacion local:
 
@@ -371,6 +378,7 @@ Validacion produccion:
 - `https://dayibiza.link/` redirige a `/login` con `307` si no hay sesion.
 - `http://dayibiza.link/login` redirige a `https://dayibiza.link/login` con `308`.
 - CSS de produccion verificado en `/_next/static/chunks/07uyii2_xba4-.css`: incluye `sidebar.open`, `mobile-menu-backdrop.open` y el ajuste responsive `.link-command-actions .search-field`.
+- Bundle de produccion verificado en `/_next/static/chunks/0sh_bfngiqv35.js`: contiene `https://dayibiza.link` y ya no contiene `http://localhost:3000` como fallback de URL base.
 
 ## Reglas Para Futuras Sesiones
 

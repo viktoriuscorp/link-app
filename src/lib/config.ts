@@ -6,4 +6,4 @@ export const CNAME_TARGET =
   "links.example.com";
 
 export const DEFAULT_BASE_URL =
-  process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  process.env.NEXT_PUBLIC_BASE_URL || "https://dayibiza.link";
