@@ -442,6 +442,7 @@ export function Dashboard({
           </div>
         </div>
         <nav className="sidebar-nav" aria-label="Navegacion principal">
+          <span className="nav-section-label">Principal</span>
           <NavButton
             icon={<LayoutDashboard size={18} />}
             active={activeView === "overview"}
@@ -462,6 +463,7 @@ export function Dashboard({
           >
             Analytics
           </NavButton>
+          <span className="nav-section-label">Gestion</span>
           <NavButton
             icon={<KeyRound size={18} />}
             active={activeView === "apiKeys"}
@@ -475,6 +477,7 @@ export function Dashboard({
           <NavButton icon={<Globe2 size={18} />} active={activeView === "domains"} onClick={() => setActiveView("domains")}>
             Dominios
           </NavButton>
+          <span className="nav-section-label">Herramientas</span>
           <NavButton icon={<FileUp size={18} />} active={activeView === "imports"} onClick={() => setActiveView("imports")}>
             Importacion masiva
           </NavButton>
@@ -889,11 +892,28 @@ function CreateLinkView({
   setLinkForm: React.Dispatch<React.SetStateAction<typeof emptyLinkForm>>;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
+  const selectedDomain = domains.find((domain) => domain.id === linkForm.domainId);
+  const previewHost = selectedDomain?.hostname || DEFAULT_BASE_URL.replace(/^https?:\/\//, "");
+  const previewSlug = linkForm.slug.trim() || "nuevo-link";
+  const previewUrl = `https://${previewHost}/${previewSlug}`;
+  const targetHost = safeHostname(linkForm.targetUrl);
+  const hasTracking = Boolean(
+    linkForm.utmSource ||
+      linkForm.utmMedium ||
+      linkForm.utmCampaign ||
+      linkForm.utmContent ||
+      linkForm.utmTerm ||
+      linkForm.campaign ||
+      linkForm.tags
+  );
+  const hasRules = Boolean(linkForm.expiresAt || linkForm.clickLimit || linkForm.fallbackUrl);
+
   return (
     <div className="create-layout">
       <section className="link-builder">
         <form className="form-stack" onSubmit={onSubmit}>
-          <div className="destination-card">
+          <div className="create-step destination-card">
+            <span className="step-kicker">Paso 1</span>
             <label>
               <span>
                 <Link2 size={16} />
@@ -908,100 +928,137 @@ function CreateLinkView({
                 }
               />
             </label>
-            <p>Pega cualquier URL larga para empezar.</p>
+            <p>{targetHost ? `Destino detectado: ${targetHost}` : "Pega cualquier URL larga para empezar."}</p>
           </div>
-          <div className="form-row">
-            <label>
-              Enlace corto
-              <input
-                placeholder="dayibiza.link/verano"
-                value={linkForm.slug}
-                onChange={(event) => setLinkForm((current) => ({ ...current, slug: event.target.value }))}
-              />
-            </label>
-            <label>
-              Dominio
-              <select
-                value={linkForm.domainId}
-                onChange={(event) => setLinkForm((current) => ({ ...current, domainId: event.target.value }))}
-              >
-                <option value="base">Dominio base</option>
-                {domains
-                  .filter((domain) => domain.status === "verified")
-                  .map((domain) => (
-                    <option key={domain.id} value={domain.id}>
-                      {domain.hostname}
-                    </option>
-                  ))}
-              </select>
-            </label>
+
+          <div className="create-step">
+            <div className="step-heading">
+              <span className="step-kicker">Paso 2</span>
+              <h2>Link corto</h2>
+            </div>
+            <div className="form-row">
+              <label>
+                Slug
+                <input
+                  placeholder="verano"
+                  value={linkForm.slug}
+                  onChange={(event) => setLinkForm((current) => ({ ...current, slug: event.target.value }))}
+                />
+              </label>
+              <label>
+                Dominio
+                <select
+                  value={linkForm.domainId}
+                  onChange={(event) => setLinkForm((current) => ({ ...current, domainId: event.target.value }))}
+                >
+                  <option value="base">dayibiza.link</option>
+                  {domains
+                    .filter((domain) => domain.status === "verified")
+                    .map((domain) => (
+                      <option key={domain.id} value={domain.id}>
+                        {domain.hostname}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </div>
+            <div className="live-short-url">
+              <Link2 size={15} />
+              <span>{previewUrl}</span>
+            </div>
           </div>
-          <label>
-            Nombre
-            <input
-              placeholder="ej. Mi campana"
-              value={linkForm.title}
-              onChange={(event) => setLinkForm((current) => ({ ...current, title: event.target.value }))}
-            />
-          </label>
-          <SegmentedLabel title="Seguimiento y analitica" />
-          <div className="compact-grid">
-            {(["utmSource", "utmMedium", "utmCampaign", "utmContent", "utmTerm"] as const).map((key) => (
+
+          <div className="create-step">
+            <div className="step-heading">
+              <span className="step-kicker">Paso 3</span>
+              <h2>Organizacion</h2>
+            </div>
+            <label>
+              Nombre interno
               <input
-                key={key}
-                placeholder={camelToUtm(key)}
-                value={linkForm[key]}
-                onChange={(event) => setLinkForm((current) => ({ ...current, [key]: event.target.value }))}
+                placeholder="ej. Mi campana"
+                value={linkForm.title}
+                onChange={(event) => setLinkForm((current) => ({ ...current, title: event.target.value }))}
               />
-            ))}
+            </label>
+            <div className="form-row">
+              <label>
+                Campana
+                <input
+                  placeholder="launch"
+                  value={linkForm.campaign}
+                  onChange={(event) => setLinkForm((current) => ({ ...current, campaign: event.target.value }))}
+                />
+              </label>
+              <label>
+                Tags
+                <input
+                  placeholder="ads, newsletter"
+                  value={linkForm.tags}
+                  onChange={(event) => setLinkForm((current) => ({ ...current, tags: event.target.value }))}
+                />
+              </label>
+            </div>
           </div>
-          <div className="form-row">
+
+          <details className="create-step advanced-step" open={hasTracking}>
+            <summary>
+              <span>
+                <Activity size={16} />
+                Seguimiento UTM
+              </span>
+              <em>{hasTracking ? "Configurado" : "Opcional"}</em>
+            </summary>
+            <div className="compact-grid">
+              {(["utmSource", "utmMedium", "utmCampaign", "utmContent", "utmTerm"] as const).map((key) => (
+                <input
+                  key={key}
+                  placeholder={camelToUtm(key)}
+                  value={linkForm[key]}
+                  onChange={(event) => setLinkForm((current) => ({ ...current, [key]: event.target.value }))}
+                />
+              ))}
+            </div>
+          </details>
+
+          <details className="create-step advanced-step" open={hasRules}>
+            <summary>
+              <span>
+                <Power size={16} />
+                Reglas de acceso
+              </span>
+              <em>{hasRules ? "Configurado" : "Opcional"}</em>
+            </summary>
+            <div className="form-row">
+              <label>
+                Expira
+                <input
+                  type="datetime-local"
+                  value={linkForm.expiresAt}
+                  onChange={(event) => setLinkForm((current) => ({ ...current, expiresAt: event.target.value }))}
+                />
+              </label>
+              <label>
+                Limite clics
+                <input
+                  min="1"
+                  type="number"
+                  placeholder="500"
+                  value={linkForm.clickLimit}
+                  onChange={(event) => setLinkForm((current) => ({ ...current, clickLimit: event.target.value }))}
+                />
+              </label>
+            </div>
             <label>
-              Campana
+              URL fallback
               <input
-                placeholder="launch"
-                value={linkForm.campaign}
-                onChange={(event) => setLinkForm((current) => ({ ...current, campaign: event.target.value }))}
+                placeholder="https://ejemplo.com/cerrado"
+                value={linkForm.fallbackUrl}
+                onChange={(event) => setLinkForm((current) => ({ ...current, fallbackUrl: event.target.value }))}
               />
             </label>
-            <label>
-              Tags
-              <input
-                placeholder="ads, newsletter"
-                value={linkForm.tags}
-                onChange={(event) => setLinkForm((current) => ({ ...current, tags: event.target.value }))}
-              />
-            </label>
-          </div>
-          <SegmentedLabel title="Acceso y expiracion" />
-          <div className="form-row">
-            <label>
-              Expira
-              <input
-                type="datetime-local"
-                value={linkForm.expiresAt}
-                onChange={(event) => setLinkForm((current) => ({ ...current, expiresAt: event.target.value }))}
-              />
-            </label>
-            <label>
-              Limite clics
-              <input
-                min="1"
-                type="number"
-                placeholder="500"
-                value={linkForm.clickLimit}
-                onChange={(event) => setLinkForm((current) => ({ ...current, clickLimit: event.target.value }))}
-              />
-            </label>
-          </div>
-          <label>
-            URL fallback
-            <input
-              placeholder="https://ejemplo.com/cerrado"
-              value={linkForm.fallbackUrl}
-              onChange={(event) => setLinkForm((current) => ({ ...current, fallbackUrl: event.target.value }))}
-            />
-          </label>
+          </details>
+
           <button className="primary-button" disabled={busy === "create-link"}>
             {busy === "create-link" ? <Loader2 className="spin" size={18} /> : <Plus size={18} />}
             Guardar enlace
@@ -1009,13 +1066,33 @@ function CreateLinkView({
         </form>
       </section>
       <aside className="preview-rail">
+        <div className="create-preview-card">
+          <span className="preview-domain">{previewHost}</span>
+          <strong>/{previewSlug}</strong>
+          <p>{linkForm.title || "Nombre interno del enlace"}</p>
+          <div className="preview-status-row">
+            <span>{targetHost || "Destino pendiente"}</span>
+            <span>{hasTracking ? "Tracking activo" : "Sin UTM"}</span>
+          </div>
+        </div>
         <div className="qr-placeholder">
-          <QrCode size={56} />
+          <QrCode size={50} />
           <span>El QR aparecera al guardar</span>
         </div>
-        <div className="preview-box">
-          <ExternalLink size={36} />
-          <span>La vista previa del destino aparecera aqui</span>
+        <div className="preview-checklist">
+          <strong>Listo para crear</strong>
+          <span className={linkForm.targetUrl ? "done" : ""}>
+            <CheckCircle2 size={15} />
+            URL destino
+          </span>
+          <span className={linkForm.slug ? "done" : ""}>
+            <CheckCircle2 size={15} />
+            Slug personalizado
+          </span>
+          <span className={hasRules ? "done" : ""}>
+            <CheckCircle2 size={15} />
+            Reglas opcionales
+          </span>
         </div>
       </aside>
     </div>
@@ -1044,44 +1121,83 @@ function LinksView({
   onUpdate: (id: string, input: LinkUpdateInput) => Promise<void>;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "paused" | "expired">("all");
+  const activeCount = filteredLinks.filter((link) => link.isActive && !isExpired(link)).length;
+  const pausedCount = filteredLinks.filter((link) => !link.isActive).length;
+  const expiredCount = filteredLinks.filter(isExpired).length;
+  const visibleLinks = filteredLinks.filter((link) => {
+    if (statusFilter === "active") {
+      return link.isActive && !isExpired(link);
+    }
+    if (statusFilter === "paused") {
+      return !link.isActive;
+    }
+    if (statusFilter === "expired") {
+      return isExpired(link);
+    }
+    return true;
+  });
 
   return (
-    <section className="dashboard-card">
-      <div className="table-toolbar">
-        <div className="button-row">
-          <button className="ghost-action" type="button">Columns</button>
+    <section className="links-view">
+      <div className="link-command-center">
+        <div>
+          <small>Centro de enlaces</small>
+          <h2>{filteredLinks.length} links</h2>
+          <p>{activeCount} activos · {pausedCount} pausados · {expiredCount} expirados</p>
+        </div>
+        <div className="link-command-actions">
+          <label className="search-field">
+            <Search size={16} />
+            <input placeholder="Buscar por nombre, slug, destino o tag..." value={query} onChange={(event) => setQuery(event.target.value)} />
+          </label>
           <button className="ghost-action" type="button">
             <Download size={16} />
             Exportar
           </button>
         </div>
-        <label className="search-field">
-          <Search size={16} />
-          <input placeholder="Buscar..." value={query} onChange={(event) => setQuery(event.target.value)} />
-        </label>
       </div>
-      <div className="link-table">
-        <div className="link-table-head">
-          <span>Nombre</span>
-          <span>Hoy</span>
-          <span>Total</span>
-          <span>Enlace</span>
-          <span />
-        </div>
-        {filteredLinks.length === 0 ? (
-          <EmptyState text="Sin resultados" />
+
+      <div className="link-filter-tabs" role="tablist" aria-label="Filtros de enlaces">
+        <button className={statusFilter === "all" ? "active" : ""} type="button" onClick={() => setStatusFilter("all")}>
+          Todos <span>{filteredLinks.length}</span>
+        </button>
+        <button className={statusFilter === "active" ? "active" : ""} type="button" onClick={() => setStatusFilter("active")}>
+          Activos <span>{activeCount}</span>
+        </button>
+        <button className={statusFilter === "paused" ? "active" : ""} type="button" onClick={() => setStatusFilter("paused")}>
+          Pausados <span>{pausedCount}</span>
+        </button>
+        <button className={statusFilter === "expired" ? "active" : ""} type="button" onClick={() => setStatusFilter("expired")}>
+          Expirados <span>{expiredCount}</span>
+        </button>
+      </div>
+
+      <div className="link-table link-card-list">
+        {visibleLinks.length === 0 ? (
+          <EmptyState text="Sin resultados para este filtro" />
         ) : (
-          filteredLinks.map((link) => (
-            <div key={link.id}>
+          visibleLinks.map((link) => (
+            <div className="link-list-card" key={link.id}>
               <button className="link-row" type="button" onClick={() => setExpandedId(expandedId === link.id ? null : link.id)}>
                 <span className="link-name">
-                  <span className="favicon-dot">{new URL(link.targetUrl).hostname.slice(0, 1).toUpperCase()}</span>
-                  <strong>{link.title}</strong>
+                  <span className="favicon-dot">{safeHostname(link.targetUrl).slice(0, 1).toUpperCase() || "L"}</span>
+                  <span>
+                    <strong>{link.title}</strong>
+                    <small>{safeHostname(link.targetUrl) || link.targetUrl}</small>
+                  </span>
                 </span>
-                <span>{clicksToday(clickEvents, link.id)}</span>
-                <span>{link.clicks}</span>
+                <span className="link-row-metric">
+                  <small>Hoy</small>
+                  <strong>{clicksToday(clickEvents, link.id)}</strong>
+                </span>
+                <span className="link-row-metric">
+                  <small>Total</small>
+                  <strong>{link.clicks}</strong>
+                </span>
                 <span className="short-url">{buildShortUrl(link, domains)}</span>
                 <span className="row-actions">
+                  <StatusBadge link={link} />
                   <Edit3 size={15} />
                 </span>
               </button>
@@ -1103,7 +1219,6 @@ function LinksView({
     </section>
   );
 }
-
 function AnalyticsView({
   clickEvents,
   links,
@@ -2510,6 +2625,14 @@ function formatDate(value: string) {
     hour: "2-digit",
     minute: "2-digit"
   }).format(new Date(value));
+}
+
+function safeHostname(value: string) {
+  try {
+    return new URL(value).hostname;
+  } catch {
+    return "";
+  }
 }
 
 function topValue(values: string[]) {
