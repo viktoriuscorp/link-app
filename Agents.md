@@ -397,8 +397,9 @@ npx opennextjs-cloudflare build
 ```
 
 4. Si se despliega, apuntar aqui la URL, version de Cloudflare y resultado del smoke test.
-5. Hacer commit con un mensaje claro.
-6. Subir a GitHub.
+5. Antes de hacer commit, usar siempre un agente verificador para revisar el estado final: cambios pendientes, diff, validaciones ejecutadas, posibles fallos tecnicos y si falta subir algo a produccion o GitHub. El commit solo debe hacerse cuando el agente verificador confirme que el estado esta correcto o cuando sus hallazgos hayan sido resueltos.
+6. Hacer commit con un mensaje claro.
+7. Subir a GitHub.
 
 ## Pendientes
 
