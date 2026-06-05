@@ -2627,6 +2627,74 @@ code {
   font-weight: 800;
 }
 
+/* Typography weight tuning */
+body {
+  font-weight: 300;
+}
+
+p,
+.dashboard-topbar p,
+.section-heading p,
+.domain-hero p,
+.placeholder-view p,
+.overview-hero p,
+.overview-metric p,
+.create-preview-card p,
+.destination-card p,
+.workspace-switcher p {
+  font-weight: 300;
+}
+
+label,
+.user-editor label,
+.api-key-form label {
+  font-weight: 600;
+}
+
+button,
+.primary-button,
+.ghost-action,
+.small-button,
+.nav-button,
+.sidebar-logout,
+.link-filter-tabs button,
+.donut-legend button,
+.top-links-panel button,
+.bar-row {
+  font-weight: 600;
+}
+
+.status-badge,
+.verified-label,
+.click-pill,
+.link-row-metric strong,
+.analytics-strip strong,
+.overview-status strong,
+.overview-list em,
+.bar-row strong,
+.bar-row em,
+.donut-legend strong,
+.location-table button,
+.top-links-panel em,
+.workspace-switcher strong,
+.usage-box strong {
+  font-weight: 700;
+}
+
+.dashboard-topbar h1,
+.overview-hero h2,
+.overview-metric strong,
+.overview-panel-head > strong,
+.link-command-center h2,
+.analytics-kpi strong,
+.analytics-insight em,
+.analytics-donut span,
+.traffic-hero strong,
+.api-key-hero h2,
+.create-preview-card strong {
+  font-weight: 300;
+}
+
 @media (max-width: 1060px) {
   .dashboard-app,
   .create-layout,

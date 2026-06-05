@@ -34,7 +34,7 @@ Objetivo del MVP:
 - HTTPS: activo y verificado en `dayibiza.link`, `www.dayibiza.link` y `link-app.comunikoo.workers.dev`.
 - Seguridad HTTPS: `http://dayibiza.link/*` redirige a `https://dayibiza.link/*` con `308`; las respuestas HTTPS incluyen `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`.
 - Certificado verificado el 2026-06-04: `dayibiza.link`, TLSv1.3, issuer `Google Trust Services`, HTTP/2.
-- Version Cloudflare actual: `3f7f006e-8991-4a68-b461-5d4baa2ccb03`
+- Version Cloudflare actual: `6a472108-5105-4adb-83ce-e53cab2eba83`
 - Plataforma: Cloudflare Workers con OpenNext.
 - Motivo: la app usa Next.js full-stack con route handlers, redirecciones dinamicas y persistencia. Cloudflare Pages queda mejor para sitios estaticos; para esta app se usa Workers/OpenNext.
 - KV namespace: `LINK_APP_STORE`
@@ -290,6 +290,7 @@ Contenido:
 - Sidebar fija con workspace, navegacion principal, uso de links ilimitados y logout.
 - Vista de inicio por defecto al abrir la app: resumen general del workspace con metricas, actividad de 7 dias, top links, estado de dominios/API/usuarios y enlaces recientes.
 - Mejora visual/UX general: sidebar agrupada por Principal/Gestion/Herramientas, creacion de enlaces guiada por pasos con preview viva y checklist, y vista Enlaces convertida en centro de gestion con resumen, busqueda amplia, filtros de estado y cards expandibles.
+- Ajuste tipografico visual: base y parrafos a peso 300, labels/formularios y botones a 600, badges/metricas de soporte a 700 y numeros grandes a 300 para una interfaz mas fina.
 - Vistas separadas: crear enlace, enlaces, Analytics, usuarios, dominios, importacion masiva y configuracion.
 - Vista de crear enlace con panel de destino, slug/dominio, nombre interno, UTMs, campana, tags, expiracion, limite de clics, fallback y previsualizacion lateral.
 - Vista de enlaces con tabla densa, buscador, exportacion visual y acciones existentes al expandir cada fila.
@@ -353,12 +354,13 @@ Pendiente despues de desplegar V3:
 
 Estado: desplegado en Cloudflare el 2026-06-05.
 
-Cloudflare version id: `3f7f006e-8991-4a68-b461-5d4baa2ccb03`
+Cloudflare version id: `6a472108-5105-4adb-83ce-e53cab2eba83`
 
 Contenido:
 
 - Navegacion movil del dashboard cambiada a menu lateral tipo drawer.
 - En mobile/tablet el sidebar ya no ocupa espacio vertical encima del contenido ni obliga a hacer scroll hacia abajo.
+- Ajuste tipografico desplegado: parrafos/base a 300, labels y botones a 600, badges/metricas de soporte a 700 y numeros grandes a 300.
 - Se anadio boton de menu en la topbar movil, overlay para cerrar, boton de cierre dentro del drawer, cierre con tecla Escape y cierre automatico al navegar a una seccion.
 - Buscador de la vista Enlaces ajustado en mobile para evitar que el `flex-basis` de escritorio lo convierta en un bloque alto/cuadrado.
 - Fallback de `DEFAULT_BASE_URL` cambiado de `http://localhost:3000` a `https://dayibiza.link` para que el creador de enlaces no muestre localhost en produccion cuando no exista `NEXT_PUBLIC_BASE_URL`.
