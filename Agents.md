@@ -34,7 +34,7 @@ Objetivo del MVP:
 - HTTPS: activo y verificado en `dayibiza.link`, `www.dayibiza.link` y `link-app.comunikoo.workers.dev`.
 - Seguridad HTTPS: `http://dayibiza.link/*` redirige a `https://dayibiza.link/*` con `308`; las respuestas HTTPS incluyen `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`.
 - Certificado verificado el 2026-06-04: `dayibiza.link`, TLSv1.3, issuer `Google Trust Services`, HTTP/2.
-- Version Cloudflare actual: `58c1bb62-3d1e-4211-a596-7a059b9db4e1`
+- Version Cloudflare actual: `3f7f006e-8991-4a68-b461-5d4baa2ccb03`
 - Plataforma: Cloudflare Workers con OpenNext.
 - Motivo: la app usa Next.js full-stack con route handlers, redirecciones dinamicas y persistencia. Cloudflare Pages queda mejor para sitios estaticos; para esta app se usa Workers/OpenNext.
 - KV namespace: `LINK_APP_STORE`
@@ -353,7 +353,7 @@ Pendiente despues de desplegar V3:
 
 Estado: desplegado en Cloudflare el 2026-06-05.
 
-Cloudflare version id: `58c1bb62-3d1e-4211-a596-7a059b9db4e1`
+Cloudflare version id: `3f7f006e-8991-4a68-b461-5d4baa2ccb03`
 
 Contenido:
 
@@ -364,6 +364,7 @@ Contenido:
 - Fallback de `DEFAULT_BASE_URL` cambiado de `http://localhost:3000` a `https://dayibiza.link` para que el creador de enlaces no muestre localhost en produccion cuando no exista `NEXT_PUBLIC_BASE_URL`.
 - Lista mobile de Enlaces compactada: el resumen plegado muestra nombre/dominio a la izquierda y metricas Hoy/Total a la derecha; URL corta, estado y acciones quedan para el desglose al tocar.
 - Toasts del dashboard ajustados para cerrarse automaticamente: mensajes de exito tras unos segundos y errores con una duracion algo mayor.
+- Boton de refrescar del dashboard convertido en accion de reset de la vista activa: recarga datos, reinicia filtros/formularios/desplegables de la pantalla actual, muestra estado de carga y notifica resultado.
 
 Validacion local:
 
@@ -383,6 +384,7 @@ Validacion produccion:
 - Bundle de produccion verificado en `/_next/static/chunks/0sh_bfngiqv35.js`: contiene `https://dayibiza.link` y ya no contiene `http://localhost:3000` como fallback de URL base.
 - CSS de produccion verificado en `/_next/static/chunks/40t123tsjfia2.css`: la fila mobile de Enlaces usa `grid-template-columns: minmax(0,1fr) 52px 58px`, altura compacta y oculta URL corta/acciones en el resumen plegado para mostrarlas en el desglose.
 - Bundle de produccion verificado en `/_next/static/chunks/2ohu0gemvn80z.js`: los toasts usan `setTimeout` para cerrarse automaticamente y `clearTimeout` al cambiar de mensaje.
+- Bundle de produccion verificado en `/_next/static/chunks/0pnbp2tg7yc14.js`: incluye `Actualizar vista`, `Vista actualizada`, manejo de error de refresco y reset por vista (`links`, `create`, `apiKeys`, `domains`).
 
 ## Reglas Para Futuras Sesiones
 

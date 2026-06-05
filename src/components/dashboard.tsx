@@ -105,6 +105,7 @@ export function Dashboard({
   const [newApiToken, setNewApiToken] = useState("");
   const [domainForm, setDomainForm] = useState({ hostname: "" });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [refreshNonce, setRefreshNonce] = useState(0);
 
   useEffect(() => {
     if (!mobileMenuOpen) {
@@ -167,19 +168,56 @@ export function Dashboard({
   }, [links, query]);
 
   async function refresh() {
-    const [snapshotResponse, usersResponse, apiKeysResponse] = await Promise.all([
-      fetch("/api/snapshot", { cache: "no-store" }),
-      fetch("/api/users", { cache: "no-store" }),
-      fetch("/api/api-keys", { cache: "no-store" })
-    ]);
-    const snapshot = (await snapshotResponse.json()) as Snapshot;
-    const latestUsers = (await usersResponse.json()) as PublicUser[];
-    const latestApiKeys = (await apiKeysResponse.json()) as PublicApiKey[];
-    setDomains(snapshot.domains);
-    setLinks(snapshot.links);
-    setClickEvents(snapshot.clickEvents);
-    setUsers(latestUsers);
-    setApiKeys(latestApiKeys);
+    if (busy) {
+      return;
+    }
+
+    const viewToReset = activeView;
+    setBusy("refresh");
+    setToast(null);
+
+    try {
+      const [snapshotResponse, usersResponse, apiKeysResponse] = await Promise.all([
+        fetch("/api/snapshot", { cache: "no-store" }),
+        fetch("/api/users", { cache: "no-store" }),
+        fetch("/api/api-keys", { cache: "no-store" })
+      ]);
+
+      if (!snapshotResponse.ok || !usersResponse.ok || !apiKeysResponse.ok) {
+        throw new Error("No se pudo actualizar la vista.");
+      }
+
+      const snapshot = (await snapshotResponse.json()) as Snapshot;
+      const latestUsers = (await usersResponse.json()) as PublicUser[];
+      const latestApiKeys = (await apiKeysResponse.json()) as PublicApiKey[];
+      setDomains(snapshot.domains);
+      setLinks(snapshot.links);
+      setClickEvents(snapshot.clickEvents);
+      setUsers(latestUsers);
+      setApiKeys(latestApiKeys);
+
+      if (viewToReset === "create") {
+        setLinkForm(emptyLinkForm);
+      }
+      if (viewToReset === "links") {
+        setQuery("");
+      }
+      if (viewToReset === "apiKeys") {
+        setApiKeyForm({ name: "" });
+        setNewApiToken("");
+      }
+      if (viewToReset === "domains") {
+        setDomainForm({ hostname: "" });
+      }
+
+      setRefreshNonce((current) => current + 1);
+      setToast({ tone: "success", text: "Vista actualizada." });
+      router.refresh();
+    } catch (error) {
+      setToast({ tone: "error", text: error instanceof Error ? error.message : "No se pudo actualizar." });
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function logout() {
@@ -570,8 +608,14 @@ export function Dashboard({
           </div>
           <div className="header-actions">
             {toast ? <span className={`toast ${toast.tone}`}>{toast.text}</span> : null}
-            <button className="icon-button" type="button" onClick={refresh} title="Actualizar">
-              <RefreshCw size={18} />
+            <button
+              className="icon-button"
+              type="button"
+              onClick={refresh}
+              title="Actualizar vista"
+              disabled={busy !== null}
+            >
+              {busy === "refresh" ? <Loader2 className="spin" size={18} /> : <RefreshCw size={18} />}
             </button>
             <button className="primary-action" type="button" onClick={() => navigateTo("create")}>
               <Plus size={18} />
@@ -586,6 +630,7 @@ export function Dashboard({
             clickEvents={clickEvents}
             currentUser={currentUser}
             domains={domains}
+            key={`overview-${refreshNonce}`}
             links={links}
             stats={stats}
             users={users}
@@ -597,6 +642,7 @@ export function Dashboard({
           <CreateLinkView
             busy={busy}
             domains={domains}
+            key={`create-${refreshNonce}`}
             linkForm={linkForm}
             setLinkForm={setLinkForm}
             onSubmit={createLink}
@@ -609,6 +655,7 @@ export function Dashboard({
             clickEvents={clickEvents}
             domains={domains}
             filteredLinks={filteredLinks}
+            key={`links-${refreshNonce}`}
             query={query}
             setQuery={setQuery}
             onCopy={copyShortUrl}
@@ -618,7 +665,7 @@ export function Dashboard({
         ) : null}
 
         {activeView === "analytics" ? (
-          <AnalyticsView clickEvents={clickEvents} links={links} stats={stats} />
+          <AnalyticsView key={`analytics-${refreshNonce}`} clickEvents={clickEvents} links={links} stats={stats} />
         ) : null}
 
         {activeView === "apiKeys" ? (
@@ -626,6 +673,7 @@ export function Dashboard({
             apiKeyForm={apiKeyForm}
             apiKeys={apiKeys}
             busy={busy}
+            key={`apiKeys-${refreshNonce}`}
             newApiToken={newApiToken}
             setApiKeyForm={setApiKeyForm}
             onCreate={createApiKey}
@@ -637,6 +685,7 @@ export function Dashboard({
           <UsersView
             busy={busy}
             currentUser={currentUser}
+            key={`users-${refreshNonce}`}
             users={users}
             onCreate={createUser}
             onUpdate={updateUser}
@@ -648,6 +697,7 @@ export function Dashboard({
             busy={busy}
             domainForm={domainForm}
             domains={domains}
+            key={`domains-${refreshNonce}`}
             setDomainForm={setDomainForm}
             onAddDomain={addDomain}
             onDeleteDomain={deleteDomain}
@@ -656,8 +706,12 @@ export function Dashboard({
           />
         ) : null}
 
-        {activeView === "imports" ? <PlaceholderView icon={<FileUp size={24} />} title="Importacion masiva" /> : null}
-        {activeView === "settings" ? <PlaceholderView icon={<Settings size={24} />} title="Configuracion" /> : null}
+        {activeView === "imports" ? (
+          <PlaceholderView key={`imports-${refreshNonce}`} icon={<FileUp size={24} />} title="Importacion masiva" />
+        ) : null}
+        {activeView === "settings" ? (
+          <PlaceholderView key={`settings-${refreshNonce}`} icon={<Settings size={24} />} title="Configuracion" />
+        ) : null}
       </section>
     </main>
   );
