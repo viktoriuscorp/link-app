@@ -352,6 +352,7 @@ Contenido:
 - Navegacion movil del dashboard cambiada a menu lateral tipo drawer.
 - En mobile/tablet el sidebar ya no ocupa espacio vertical encima del contenido ni obliga a hacer scroll hacia abajo.
 - Se anadio boton de menu en la topbar movil, overlay para cerrar, boton de cierre dentro del drawer, cierre con tecla Escape y cierre automatico al navegar a una seccion.
+- Buscador de la vista Enlaces ajustado en mobile para evitar que el `flex-basis` de escritorio lo convierta en un bloque alto/cuadrado.
 
 Validacion local:
 

@@ -2763,6 +2763,12 @@ code {
     align-items: stretch;
   }
 
+  .link-command-actions .search-field {
+    width: 100%;
+    flex: 0 0 auto;
+    min-height: 42px;
+  }
+
   .link-filter-tabs button {
     flex: 1 1 130px;
     justify-content: center;
