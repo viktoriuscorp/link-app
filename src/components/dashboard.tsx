@@ -127,6 +127,15 @@ export function Dashboard({
     };
   }, [mobileMenuOpen]);
 
+  useEffect(() => {
+    if (!toast) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => setToast(null), toast.tone === "error" ? 7000 : 3800);
+    return () => window.clearTimeout(timeout);
+  }, [toast]);
+
   function navigateTo(view: View) {
     setActiveView(view);
     setMobileMenuOpen(false);
