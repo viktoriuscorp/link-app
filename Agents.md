@@ -34,7 +34,7 @@ Objetivo del MVP:
 - HTTPS: activo y verificado en `dayibiza.link`, `www.dayibiza.link` y `link-app.comunikoo.workers.dev`.
 - Seguridad HTTPS: `http://dayibiza.link/*` redirige a `https://dayibiza.link/*` con `308`; las respuestas HTTPS incluyen `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`.
 - Certificado verificado el 2026-06-04: `dayibiza.link`, TLSv1.3, issuer `Google Trust Services`, HTTP/2.
-- Version Cloudflare actual: `7b6c3609-5f2a-4486-882f-b4429dbd8860`
+- Version Cloudflare actual: `d963a229-ba76-432b-9e59-60218c1cc122`
 - Plataforma: Cloudflare Workers con OpenNext.
 - Motivo: la app usa Next.js full-stack con route handlers, redirecciones dinamicas y persistencia. Cloudflare Pages queda mejor para sitios estaticos; para esta app se usa Workers/OpenNext.
 - KV namespace: `LINK_APP_STORE`
@@ -345,7 +345,9 @@ Pendiente despues de desplegar V3:
 
 ### Cambios posteriores a v3-link-up
 
-Estado: implementado el 2026-06-05, pendiente de despliegue.
+Estado: desplegado en Cloudflare el 2026-06-05.
+
+Cloudflare version id: `d963a229-ba76-432b-9e59-60218c1cc122`
 
 Contenido:
 
@@ -357,6 +359,18 @@ Contenido:
 Validacion local:
 
 - `npm run typecheck`
+- `npm run build`
+- `npx opennextjs-cloudflare build`
+
+Validacion produccion:
+
+- `npm run deploy`
+- `https://dayibiza.link/login` devuelve `200`.
+- `https://www.dayibiza.link/login` devuelve `200`.
+- `https://link-app.comunikoo.workers.dev/login` devuelve `200`.
+- `https://dayibiza.link/` redirige a `/login` con `307` si no hay sesion.
+- `http://dayibiza.link/login` redirige a `https://dayibiza.link/login` con `308`.
+- CSS de produccion verificado en `/_next/static/chunks/07uyii2_xba4-.css`: incluye `sidebar.open`, `mobile-menu-backdrop.open` y el ajuste responsive `.link-command-actions .search-field`.
 
 ## Reglas Para Futuras Sesiones
 
