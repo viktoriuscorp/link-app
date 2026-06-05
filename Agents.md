@@ -299,6 +299,7 @@ Contenido:
 - Cada API Key tiene scope `links:create`, prefijo visible y `lastUsedAt`.
 - Vista de usuarios con listado del workspace.
 - Gestion privada de usuarios desde el dashboard: crear/invitar usuario con nombre, email, contrasena inicial y rol; editar nombre, email, rol y contrasena.
+- Los campos de contrasena en usuarios permiten ver/ocultar la contrasena que se esta escribiendo al crear o resetear; las contrasenas ya guardadas no se pueden mostrar porque solo existen como hash y salt.
 - Solo usuarios `owner` pueden crear o editar usuarios; se protege que siempre quede al menos un `owner`.
 - Vista de dominios inspirada en el flujo de conectar dominio propio.
 - Login con cookie HTTP-only `link_app_session`.

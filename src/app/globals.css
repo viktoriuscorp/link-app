@@ -2468,6 +2468,36 @@ code {
   font-weight: 800;
 }
 
+.password-input-wrap {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.password-input-wrap input {
+  padding-right: 44px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  color: #6f7785;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.password-toggle:hover {
+  color: #263241;
+  background: #eef2f7;
+}
+
 .user-editor-actions {
   display: flex;
   align-items: center;

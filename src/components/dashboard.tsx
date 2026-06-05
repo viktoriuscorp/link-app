@@ -9,6 +9,8 @@ import {
   Clipboard,
   Download,
   Edit3,
+  Eye,
+  EyeOff,
   ExternalLink,
   FileUp,
   Filter,
@@ -1934,6 +1936,8 @@ function UsersView({
   const canManageUsers = currentUser.role === "owner";
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
   const [userForm, setUserForm] = useState<UserFormState>({
     name: "",
     email: "",
@@ -1953,6 +1957,7 @@ function UsersView({
 
     if (ok) {
       setUserForm({ name: "", email: "", password: "", role: "member" });
+      setShowCreatePassword(false);
       setShowCreateForm(false);
     }
   }
@@ -1963,12 +1968,14 @@ function UsersView({
 
     if (ok) {
       setEditingUserId(null);
+      setShowEditPassword(false);
       setEditForm({ name: "", email: "", password: "", role: "member" });
     }
   }
 
   function startEdit(user: PublicUser) {
     setEditingUserId(user.id);
+    setShowEditPassword(false);
     setEditForm({
       name: user.name,
       email: user.email,
@@ -2019,12 +2026,14 @@ function UsersView({
           </label>
           <label>
             Contrasena inicial
-            <input
-              required
+            <PasswordInput
+              autoComplete="new-password"
               minLength={8}
-              type="password"
+              required
+              show={showCreatePassword}
               value={userForm.password}
-              onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))}
+              onChange={(value) => setUserForm((current) => ({ ...current, password: value }))}
+              onToggle={() => setShowCreatePassword((value) => !value)}
             />
           </label>
           <label>
@@ -2076,12 +2085,14 @@ function UsersView({
                 </label>
                 <label>
                   Nueva contrasena
-                  <input
+                  <PasswordInput
+                    autoComplete="new-password"
                     minLength={8}
                     placeholder="Dejar vacia"
-                    type="password"
+                    show={showEditPassword}
                     value={editForm.password}
-                    onChange={(event) => setEditForm((current) => ({ ...current, password: event.target.value }))}
+                    onChange={(value) => setEditForm((current) => ({ ...current, password: value }))}
+                    onToggle={() => setShowEditPassword((value) => !value)}
                   />
                 </label>
                 <label>
@@ -2134,6 +2145,49 @@ function UsersView({
         ))}
       </div>
     </section>
+  );
+}
+
+function PasswordInput({
+  autoComplete,
+  minLength,
+  placeholder,
+  required,
+  show,
+  value,
+  onChange,
+  onToggle
+}: {
+  autoComplete?: string;
+  minLength?: number;
+  placeholder?: string;
+  required?: boolean;
+  show: boolean;
+  value: string;
+  onChange: (value: string) => void;
+  onToggle: () => void;
+}) {
+  return (
+    <span className="password-input-wrap">
+      <input
+        autoComplete={autoComplete}
+        minLength={minLength}
+        placeholder={placeholder}
+        required={required}
+        type={show ? "text" : "password"}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      <button
+        className="password-toggle"
+        type="button"
+        title={show ? "Ocultar contrasena" : "Ver contrasena"}
+        aria-label={show ? "Ocultar contrasena" : "Ver contrasena"}
+        onClick={onToggle}
+      >
+        {show ? <EyeOff size={16} /> : <Eye size={16} />}
+      </button>
+    </span>
   );
 }
 
